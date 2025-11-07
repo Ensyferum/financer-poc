@@ -43,7 +43,7 @@ if %errorlevel% neq 0 (
 cd ..\..
 
 echo.
-echo [4/6] Building API Gateway...
+echo [4/5] Building API Gateway...
 cd microservices\api-gateway
 call mvn clean package -DskipTests
 if %errorlevel% neq 0 (
@@ -53,7 +53,7 @@ if %errorlevel% neq 0 (
 cd ..\..
 
 echo.
-echo [5/6] Building Account Service...
+echo [5/5] Building Account Service...
 cd microservices\account-service
 call mvn clean package -DskipTests
 if %errorlevel% neq 0 (
@@ -66,10 +66,10 @@ echo.
 echo ✅ All services built successfully!
 echo.
 echo JAR files created:
-echo - Config Server: microservices\config-server\target\config-server-1.0.0-SNAPSHOT.jar
-echo - Eureka Server: microservices\eureka-server\target\eureka-server-1.0.0-SNAPSHOT.jar  
-echo - API Gateway: microservices\api-gateway\target\api-gateway-1.0.0-SNAPSHOT.jar
-echo - Account Service: microservices\account-service\target\account-service-1.0.0-SNAPSHOT.jar
+echo - Config Server: microservices\config-server\target\config-server-1.0.0.jar
+echo - Eureka Server: microservices\eureka-server\target\eureka-server-1.0.1.jar  
+echo - API Gateway: microservices\api-gateway\target\api-gateway-1.0.0.jar
+echo - Account Service: microservices\account-service\target\account-service-1.0.2.jar
 echo.
 echo To start the services, run:
 echo docker-compose -f docker-compose.services.yml up --build
