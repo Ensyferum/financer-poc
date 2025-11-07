@@ -1,0 +1,64 @@
+# Maven Configuration for CI/CD
+# This file contains Maven-specific configurations used in GitHub Actions
+
+# Default Maven arguments for CI/CD
+MAVEN_ARGS: "-B -V -e -Dfindbugs.skip -Dcheckstyle.skip -Dpmd.skip=true -Dspotbugs.skip -Denforcer.skip -Dmaven.javadoc.skip -DskipITs -Dmaven.test.skip=false"
+
+# Maven profiles
+PROFILES:
+  BUILD: "-Pbuild"
+  TEST: "-Ptest"
+  INTEGRATION_TEST: "-Pintegration-test"
+  DOCKER: "-Pdocker"
+  RELEASE: "-Prelease"
+
+# JVM settings for builds
+MAVEN_OPTS: "-Xmx1024m -Xms512m -XX:MaxPermSize=512m -Djava.awt.headless=true"
+
+# Test settings
+TEST_OPTS: "-Dspring.profiles.active=test -Dlogging.level.root=WARN"
+
+# Build matrix for different environments
+BUILD_MATRIX:
+  - java_version: "21"
+    distribution: "temurin"
+    os: "ubuntu-latest"
+  - java_version: "21"  
+    distribution: "temurin"
+    os: "windows-latest"
+  - java_version: "21"
+    distribution: "temurin"
+    os: "macos-latest"
+
+# Service configuration for testing
+SERVICES:
+  postgres:
+    image: "postgres:16-alpine"
+    env:
+      POSTGRES_DB: "financer_test"
+      POSTGRES_USER: "financer"
+      POSTGRES_PASSWORD: "financer123"
+    options: "--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5"
+    ports: "5432:5432"
+    
+  mongodb:
+    image: "mongo:7-jammy"
+    env:
+      MONGO_INITDB_ROOT_USERNAME: "financer"
+      MONGO_INITDB_ROOT_PASSWORD: "financer123"
+    options: "--health-cmd \"echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet\" --health-interval 10s --health-timeout 5s --health-retries 5"
+    ports: "27017:27017"
+
+# Cache configuration
+CACHE_PATHS:
+  - "~/.m2/repository"
+  - "~/.m2/wrapper"
+  - "**/target"
+
+# Artifact paths
+ARTIFACTS:
+  jars: "**/target/*.jar"
+  test_reports: "**/target/surefire-reports/**"
+  integration_reports: "**/target/failsafe-reports/**"
+  coverage_reports: "**/target/site/jacoco/**"
+  dependency_reports: "**/target/dependency-check-report.html"
