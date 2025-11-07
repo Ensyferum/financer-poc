@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    config:
+      enabled: false  # Desabilita Config Server para testes
+    gateway:
+      routes:
+        - id: test-service
+          uri: http://localhost:9999
+          predicates:
+            - Path=/test/**
+          filters:
+            - StripPrefix=1
+
+# Eureka Client (disabled for tests)
+eureka:
+  client:
+    enabled: false
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    root: INFO
+    com.financer: DEBUG

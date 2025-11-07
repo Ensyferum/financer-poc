@@ -31,6 +31,30 @@ public class ApiResponse<T> {
         return new ApiResponse<>(false, message, null, LocalDateTime.now(), null);
     }
     
+    public static <T> ApiResponse<T> builder() {
+        return new ApiResponse<>();
+    }
+    
+    public ApiResponse<T> success(boolean success) {
+        this.success = success;
+        return this;
+    }
+    
+    public ApiResponse<T> message(String message) {
+        this.message = message;
+        return this;
+    }
+    
+    public ApiResponse<T> data(T data) {
+        this.data = data;
+        return this;
+    }
+    
+    public ApiResponse<T> build() {
+        this.timestamp = LocalDateTime.now();
+        return this;
+    }
+    
     public ApiResponse<T> withCorrelationId(String correlationId) {
         this.correlationId = correlationId;
         return this;

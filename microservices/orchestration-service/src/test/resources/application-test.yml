@@ -1,0 +1,110 @@
+# Test Configuration for Orchestration Service
+
+# Server Configuration
+server:
+  port: 0 # Random port for tests
+
+# Spring Application Configuration
+spring:
+  application:
+    name: orchestration-service-test
+  
+  # Database Configuration - H2 for tests
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  # JPA/Hibernate Configuration
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  
+  # H2 Console for debugging
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # Disable Liquibase for tests
+  liquibase:
+    enabled: false
+  
+  # Disable Cloud Config for tests
+  cloud:
+    config:
+      enabled: false
+
+# Disable Eureka for tests
+eureka:
+  client:
+    enabled: false
+
+# CAMUNDA Configuration for tests
+camunda:
+  bpm:
+    application:
+      delete-upon-undeploy: true
+    database:
+      schema-update: true
+      type: h2
+    engine:
+      name: test-orchestration-engine
+    job-execution:
+      enabled: false # Disable job execution in tests
+    webapp:
+      enabled: false
+    rest:
+      enabled: false
+    deployment:
+      auto-deployment-enabled: true
+      resource-pattern: classpath*:**/*.bpmn
+
+# Management and Monitoring - minimal for tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+# Logging Configuration for tests
+logging:
+  level:
+    com.financer.orchestration: DEBUG
+    org.camunda.bpm: WARN
+    org.springframework.test: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Test-specific Configuration
+orchestration:
+  saga:
+    default-timeout: 30000 # 30 seconds for tests
+    max-retry-attempts: 2
+    compensation-timeout: 10000 # 10 seconds for tests
+  workflow:
+    process-definitions:
+      transfer-saga: transfer-saga-process
+      payment-saga: payment-saga-process
+      account-creation-saga: account-creation-saga-process
+
+# Mock Service URLs (for test Feign clients)
+services:
+  transaction-service:
+    url: http://localhost:8081
+  account-service:
+    url: http://localhost:8082
+  notification-service:
+    url: http://localhost:8083

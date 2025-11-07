@@ -15,26 +15,55 @@ spring:
             - Path=/api/accounts/**
           filters:
             - StripPrefix=2
+            - name: RequestRateLimiter
+              args:
+                rate-limiter: "#{@redisRateLimiter}"
+                key-resolver: "#{@userKeyResolver}"
         - id: transaction-service
           uri: lb://transaction-service
           predicates:
             - Path=/api/transactions/**
           filters:
             - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: transaction-cb
+                fallbackUri: forward:/fallback/transactions
         - id: orchestration-service
           uri: lb://orchestration-service
           predicates:
             - Path=/api/orchestration/**
           filters:
             - StripPrefix=2
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+        - name: RequestSize
+          args:
+            maxSize: 5MB
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"
-            allowedMethods: "*"
+            allowedOriginPatterns: 
+              - "https://*.financer.com"
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
+            allowedMethods: 
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
             allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
 
 # Rate Limiting
 resilience4j:
@@ -42,6 +71,10 @@ resilience4j:
     instances:
       default:
         limit-for-period: 100
+        limit-refresh-period: 60s
+        timeout-duration: 1s
+      premium-users:
+        limit-for-period: 1000
         limit-refresh-period: 60s
         timeout-duration: 1s
 
@@ -52,6 +85,54 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 30s
         sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+      transaction-cb:
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 60s
+        sliding-window-size: 20
+
+# Retry Configuration  
+  retry:
+    instances:
+      default:
+        max-attempts: 3
+        wait-duration: 100ms
+        exponential-backoff-multiplier: 2
+        
+# Timeout Configuration
+  timelimiter:
+    instances:
+      default:
+        timeout-duration: 10s
+
+# Monitoring and Metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      sla:
+        http.server.requests: 50ms,100ms,200ms,300ms,500ms,1s,2s
+
+# Distributed Tracing
+  tracing:
+    sampling:
+      probability: 1.0
 
 # Eureka Client
 eureka:

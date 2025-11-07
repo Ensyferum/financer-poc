@@ -1,0 +1,127 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'financer-dev'
+    environment: 'development'
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Node Exporter - System metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # cAdvisor - Container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+
+  # Spring Boot Actuator endpoints
+  - job_name: 'spring-boot-apps'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'user-service:8081'
+          - 'account-service:8082'
+          - 'transaction-service:8083'
+          - 'notification-service:8084'
+          - 'report-service:8085'
+          - 'api-gateway:8080'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__address__]
+        regex: '(.+):(\d+)'
+        target_label: service
+        replacement: '${1}'
+
+  # Database metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  - job_name: 'mongodb-exporter'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+    scrape_interval: 30s
+
+  # Kafka metrics
+  - job_name: 'kafka-exporter'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+    scrape_interval: 30s
+
+  # Redis metrics (if used)
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # Blackbox exporter for endpoint monitoring
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://api-gateway:8080/actuator/health
+          - http://user-service:8081/actuator/health
+          - http://account-service:8082/actuator/health
+          - http://transaction-service:8083/actuator/health
+          - http://notification-service:8084/actuator/health
+          - http://report-service:8085/actuator/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # JVM metrics from micrometer
+  - job_name: 'jvm-metrics'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'user-service:8081'
+          - 'account-service:8082'
+          - 'transaction-service:8083'
+          - 'notification-service:8084'
+          - 'report-service:8085'
+          - 'api-gateway:8080'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'jvm_.*'
+        target_label: metric_type
+        replacement: 'jvm'
+
+# Remote write configuration (for production)
+# remote_write:
+#   - url: "http://cortex:9009/api/prom/push"
+#     queue_config:
+#       max_samples_per_send: 10000
+#       capacity: 20000
+#       max_shards: 200
+
+# Storage configuration (handled via command line parameters)

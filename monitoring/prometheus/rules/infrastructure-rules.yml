@@ -1,0 +1,79 @@
+groups:
+  - name: financer.infrastructure.rules
+    rules:
+      # System load
+      - alert: HighSystemLoad
+        expr: node_load1 > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High system load on {{ $labels.instance }}"
+          description: "System load is {{ $value }} on {{ $labels.instance }}"
+
+      # Memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% on {{ $labels.instance }}"
+
+      # Disk usage
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 85% on {{ $labels.instance }} at {{ $labels.mountpoint }}"
+
+      # Container restart rate
+      - alert: HighContainerRestartRate
+        expr: rate(container_start_time_seconds[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High container restart rate"
+          description: "Container {{ $labels.name }} is restarting frequently"
+
+      # Database connectivity
+      - alert: DatabaseDown
+        expr: up{job=~"postgres-exporter|mongodb-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Database {{ $labels.job }} is down"
+          description: "Database {{ $labels.job }} has been unreachable for more than 1 minute"
+
+      # Kafka broker down
+      - alert: KafkaBrokerDown
+        expr: up{job="kafka-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Kafka broker is down"
+          description: "Kafka broker has been unreachable for more than 1 minute"
+
+      # Network issues
+      - alert: HighNetworkErrors
+        expr: rate(node_network_receive_errs_total[5m]) > 10 or rate(node_network_transmit_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High network errors on {{ $labels.instance }}"
+          description: "Network error rate is high on {{ $labels.instance }} interface {{ $labels.device }}"

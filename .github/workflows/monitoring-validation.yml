@@ -1,0 +1,179 @@
+name: Monitoring Stack Validation
+
+on:
+  push:
+    paths:
+      - 'monitoring/**'
+      - 'docker-compose.monitoring.yml'
+  pull_request:
+    paths:
+      - 'monitoring/**'
+      - 'docker-compose.monitoring.yml'
+
+jobs:
+  validate-monitoring:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Prometheus Configuration
+        run: |
+          echo "🔍 Validating Prometheus configuration..."
+          docker run --rm \
+            -v ${{ github.workspace }}/monitoring/prometheus:/etc/prometheus \
+            prom/prometheus:v2.47.0 \
+            promtool check config /etc/prometheus/prometheus.yml
+
+      - name: Validate Alert Rules
+        run: |
+          echo "🔍 Validating Prometheus alert rules..."
+          docker run --rm \
+            -v ${{ github.workspace }}/monitoring/prometheus:/etc/prometheus \
+            prom/prometheus:v2.47.0 \
+            promtool check rules /etc/prometheus/rules/*.yml
+
+      - name: Validate Alertmanager Configuration
+        run: |
+          echo "🔍 Validating Alertmanager configuration..."
+          docker run --rm \
+            -v ${{ github.workspace }}/monitoring/alertmanager:/etc/alertmanager \
+            prom/alertmanager:v0.26.0 \
+            amtool check-config /etc/alertmanager/alertmanager.yml
+
+      - name: Test Monitoring Stack Startup
+        run: |
+          echo "🧪 Testing monitoring stack startup..."
+          
+          # Create network if it doesn't exist
+          docker network create financer_financer-network || true
+          
+          # Start monitoring stack
+          docker-compose -f docker-compose.monitoring.yml up -d
+          
+          # Wait for services to be ready
+          echo "⏳ Waiting for services to start..."
+          sleep 60
+          
+          # Check service health
+          services=("prometheus:9090" "grafana:3000" "alertmanager:9093")
+          
+          for service in "${services[@]}"; do
+            echo "Checking $service..."
+            timeout 30 bash -c "until curl -f http://localhost:${service#*:}/-/ready 2>/dev/null || curl -f http://localhost:${service#*:}/api/health 2>/dev/null; do sleep 5; done"
+            echo "✅ $service is ready"
+          done
+
+      - name: Test Metrics Collection
+        run: |
+          echo "📊 Testing metrics collection..."
+          
+          # Check if Prometheus can scrape itself
+          curl -s "http://localhost:9090/api/v1/targets" | jq '.data.activeTargets[] | select(.labels.job=="prometheus") | .health' | grep -q "up"
+          echo "✅ Prometheus self-monitoring working"
+          
+          # Check if basic metrics are available
+          curl -s "http://localhost:9090/api/v1/query?query=up" | jq '.data.result | length' | grep -q -v "^0$"
+          echo "✅ Basic metrics collection working"
+
+      - name: Test Grafana Dashboards
+        run: |
+          echo "📈 Testing Grafana dashboards..."
+          
+          # Wait for Grafana to be fully ready
+          sleep 30
+          
+          # Check if datasources are configured
+          curl -u admin:admin123 -s "http://localhost:3000/api/datasources" | jq '. | length' | grep -q -v "^0$"
+          echo "✅ Grafana datasources configured"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "🧹 Cleaning up test environment..."
+          docker-compose -f docker-compose.monitoring.yml down -v
+          docker network rm financer_financer-network || true
+
+  validate-dashboards:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'monitoring/grafana/dashboards/') || contains(github.event.head_commit.added, 'monitoring/grafana/dashboards/')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Grafana Dashboard JSON
+        run: |
+          echo "📋 Validating Grafana dashboard JSON files..."
+          
+          find monitoring/grafana/dashboards -name "*.json" -type f | while read -r dashboard; do
+            echo "Validating $dashboard..."
+            cat "$dashboard" | jq empty || {
+              echo "❌ Invalid JSON in $dashboard"
+              exit 1
+            }
+            echo "✅ $dashboard is valid JSON"
+          done
+
+  security-scan-monitoring:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Security Scan - Monitoring Configs
+        run: |
+          echo "🔒 Scanning monitoring configurations for security issues..."
+          
+          # Check for default passwords
+          if grep -r "admin123\|password\|secret" monitoring/ --exclude-dir=.git; then
+            echo "⚠️  Warning: Default passwords found in monitoring configs"
+          else
+            echo "✅ No default passwords found"
+          fi
+          
+          # Check for exposed sensitive endpoints
+          if grep -r "web.enable-admin-api" monitoring/; then
+            echo "⚠️  Warning: Prometheus admin API is enabled"
+          fi
+          
+          echo "🔒 Security scan completed"
+
+  performance-test-monitoring:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Performance Test Monitoring Stack
+        run: |
+          echo "⚡ Testing monitoring stack performance..."
+          
+          # Create network
+          docker network create financer_financer-network || true
+          
+          # Start with resource limits
+          docker-compose -f docker-compose.monitoring.yml up -d
+          
+          # Wait for startup
+          sleep 60
+          
+          # Check resource usage
+          echo "📊 Resource usage:"
+          docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+          
+          # Test query performance
+          echo "🔍 Testing query performance..."
+          time curl -s "http://localhost:9090/api/v1/query?query=up" > /dev/null
+          
+          echo "✅ Performance test completed"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker-compose -f docker-compose.monitoring.yml down -v
+          docker network rm financer_financer-network || true

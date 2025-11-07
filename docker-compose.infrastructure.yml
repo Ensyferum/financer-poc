@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+      - ./infrastructure/database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - financer-network
     healthcheck:
@@ -125,6 +125,7 @@ services:
 networks:
   financer-network:
     driver: bridge
+    name: financer_financer-network
 
 volumes:
   postgres_data:

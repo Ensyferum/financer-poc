@@ -1,0 +1,130 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@financer.local'
+  smtp_auth_username: 'alerts@financer.local'
+  smtp_auth_password: 'password'
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default'
+  routes:
+    # Critical alerts go to multiple channels
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 5m
+      
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 30m
+      
+    # Infrastructure team alerts
+    - match:
+        team: infrastructure
+      receiver: 'infrastructure-team'
+      
+    # Backend team alerts
+    - match:
+        team: backend
+      receiver: 'backend-team'
+
+receivers:
+  - name: 'default'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#financer-alerts'
+        title: 'Financer Alert'
+        text: 'Alert: {{ .GroupLabels.alertname }} - {{ .CommonAnnotations.summary }}'
+
+  - name: 'critical-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#financer-critical'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        send_resolved: true
+    email_configs:
+      - to: 'ops-team@financer.local'
+        html: |
+          <h2>🚨 CRITICAL Alert: {{ .GroupLabels.alertname }}</h2>
+          <p>Critical alert has been triggered in Financer application.</p>
+          
+          {{ range .Alerts }}
+          <div>
+            <strong>Alert:</strong> {{ .Annotations.summary }}<br>
+            <strong>Description:</strong> {{ .Annotations.description }}<br>
+            <strong>Instance:</strong> {{ .Labels.instance }}<br>
+            <strong>Severity:</strong> {{ .Labels.severity }}<br>
+            <strong>Started:</strong> {{ .StartsAt }}
+          </div>
+          {{ end }}
+
+  - name: 'warning-alerts'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#financer-warnings'
+        title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+
+  - name: 'infrastructure-team'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#infrastructure-alerts'
+        title: '🔧 Infrastructure Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          *Team:* {{ .Labels.team }}
+          {{ end }}
+
+  - name: 'backend-team'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#backend-alerts'
+        title: '💻 Backend Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          *Team:* {{ .Labels.team }}
+          {{ end }}
+
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+    
+  # Inhibit service alerts if the service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: 'High.*'
+    equal: ['instance']

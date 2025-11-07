@@ -1,0 +1,245 @@
+spring:
+  application:
+    name: orchestration-service
+  
+  config:
+    import: "configserver:"
+  
+  profiles:
+    active: dev
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financer?currentSchema=orchestration_schema
+    username: ${DB_USERNAME:orchestration_service}
+    password: ${DB_PASSWORD:orchestration123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  # Liquibase Configuration
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+    default-schema: orchestration_schema
+  
+  # Cloud Configuration
+  cloud:
+    config:
+      uri: http://localhost:8888
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+
+# Server Configuration
+server:
+  port: 8085
+  servlet:
+    context-path: /orchestration-service
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+    instance-info-replication-interval-seconds: 10
+    registry-fetch-interval-seconds: 10
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+
+# Camunda Configuration
+camunda:
+  bpm:
+    application:
+      delete-upon-undeploy: false
+    deployment-resource-pattern: "classpath*:**/*.bpmn"
+    database:
+      schema-update: true
+      type: postgres
+    engine:
+      name: orchestration-engine
+    job-execution:
+      enabled: true
+      core-pool-size: 3
+      max-pool-size: 10
+      queue-capacity: 100
+    webapp:
+      index-redirect-enabled: true
+      enabled: false
+    rest:
+      enabled: false
+    admin-user:
+      id: admin
+      password: admin
+      firstName: Admin
+      lastName: User
+    filter:
+      create: All tasks
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,camunda
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 10000
+        logger-level: basic
+      transaction-service:
+        connect-timeout: 3000
+        read-timeout: 8000
+        logger-level: full
+  circuitbreaker:
+    enabled: true
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      transaction-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+      account-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+  retry:
+    instances:
+      transaction-service:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+  timelimiter:
+    instances:
+      transaction-service:
+        timeout-duration: 10s
+
+# Logging Configuration
+logging:
+  level:
+    com.financer.orchestration: DEBUG
+    org.camunda.bpm: INFO
+    org.springframework.cloud.openfeign: DEBUG
+    feign: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/orchestration-service.log
+
+# Application Specific Configuration
+orchestration:
+  saga:
+    default-timeout: 300000 # 5 minutes
+    max-retry-attempts: 3
+    compensation-timeout: 60000 # 1 minute
+  workflow:
+    process-definitions:
+      transfer-saga: transfer-saga-process
+      payment-saga: payment-saga-process
+      account-creation-saga: account-creation-saga-process
+  
+# Service URLs (for Feign clients)
+services:
+  transaction-service:
+    url: http://transaction-service
+  account-service:
+    url: http://account-service
+  notification-service:
+    url: http://notification-service
+  circuitbreaker:
+    instances:
+      transaction-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+      account-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+
+# Logging Configuration
+logging:
+  level:
+    com.financer.orchestration: INFO
+    org.camunda: WARN
+    org.springframework.cloud: WARN
+    feign: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# Application-specific Configuration
+app:
+  workflow:
+    timeout:
+      default: PT10M
+      transaction: PT5M
+      saga: PT15M
+  saga:
+    compensation:
+      retry-attempts: 3
+      retry-delay: PT30S
+  process:
+    auto-deployment: true
+    history-cleanup:
+      enabled: true
+      batch-size: 100

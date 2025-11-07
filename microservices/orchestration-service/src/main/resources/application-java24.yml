@@ -1,0 +1,98 @@
+# Java 24 Profile Configuration for Orchestration Service
+
+spring:
+  profiles:
+    active: java24
+
+  # Java 24 specific JPA optimizations
+  jpa:
+    properties:
+      hibernate:
+        # Enable Java 24 specific optimizations
+        jdbc:
+          use_streams_for_binary: true
+          use_get_generated_keys: true
+        # Use latest SQL formatting features
+        format_sql: true
+        use_sql_comments: true
+        # Enable batch processing optimizations
+        batch_versioned_data: true
+        jdbc:
+          batch_size: 25
+
+# CAMUNDA BPM optimizations for Java 24
+camunda:
+  bpm:
+    # Enable async processing
+    job-execution:
+      enabled: true
+      core-pool-size: 4
+      max-pool-size: 12
+      queue-capacity: 150
+      # Java 24 thread optimizations
+      thread-priority: 5
+      max-jobs-per-acquisition: 3
+      lock-time-in-millis: 300000
+      wait-time-in-millis: 5000
+    
+    # Database optimizations
+    database:
+      # Use connection pooling optimizations
+      connection-pool-settings:
+        max-active: 20
+        max-idle: 10
+        min-idle: 5
+    
+    # Process engine optimizations
+    process-engine:
+      # Enable Java 24 features
+      enable-password-policy: true
+      enable-expression-caching: true
+
+# Java 24 specific logging optimizations
+logging:
+  level:
+    # Enable Virtual Thread debugging if using virtual threads
+    jdk.VirtualThread: DEBUG
+    # Enable optimized logging for CAMUNDA
+    org.camunda.bpm.engine.impl.persistence: INFO
+    org.camunda.bpm.engine.impl.jobexecutor: INFO
+  pattern:
+    # Enhanced pattern for Java 24 features
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{sagaId:-}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{sagaId:-}] %logger{36} - %msg%n"
+
+# Java 24 performance optimizations
+management:
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 10ms,50ms,100ms,200ms,500ms,1s,2s,5s
+  endpoint:
+    metrics:
+      enabled: true
+    jvm:
+      enabled: true
+    # Enable virtual thread metrics if using virtual threads
+    threaddump:
+      enabled: true
+
+# Application specific Java 24 configurations
+orchestration:
+  saga:
+    # Optimized timeouts for Java 24 performance
+    default-timeout: 240000 # 4 minutes
+    max-retry-attempts: 3
+    compensation-timeout: 45000 # 45 seconds
+    # Enable parallel processing
+    enable-parallel-processing: true
+    max-concurrent-sagas: 50
+  
+  workflow:
+    # Enable workflow optimizations
+    enable-caching: true
+    cache-size: 1000
+    # Enable async workflow execution
+    enable-async-execution: true

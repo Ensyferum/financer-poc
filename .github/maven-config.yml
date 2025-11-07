@@ -13,20 +13,20 @@ PROFILES:
   RELEASE: "-Prelease"
 
 # JVM settings for builds
-MAVEN_OPTS: "-Xmx1024m -Xms512m -XX:MaxPermSize=512m -Djava.awt.headless=true"
+MAVEN_OPTS: "-Xmx2048m -Xms1024m -Djava.awt.headless=true --enable-preview"
 
 # Test settings
 TEST_OPTS: "-Dspring.profiles.active=test -Dlogging.level.root=WARN"
 
 # Build matrix for different environments
 BUILD_MATRIX:
-  - java_version: "21"
+  - java_version: "24"
     distribution: "temurin"
     os: "ubuntu-latest"
-  - java_version: "21"  
+  - java_version: "24"  
     distribution: "temurin"
     os: "windows-latest"
-  - java_version: "21"
+  - java_version: "24"
     distribution: "temurin"
     os: "macos-latest"
 

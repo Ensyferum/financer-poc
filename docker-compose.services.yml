@@ -101,6 +101,68 @@ services:
       retries: 3
       start_period: 60s
 
+  # Transaction Service
+  transaction-service:
+    build:
+      context: microservices/transaction-service
+      dockerfile: Dockerfile
+      args:
+        - VERSION=${TRANSACTION_SERVICE_VERSION:-1.0.0}
+    image: financer/transaction-service:${TRANSACTION_SERVICE_VERSION:-1.0.0}
+    container_name: financer-transaction-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    ports:
+      - "8083:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC
+    networks:
+      - financer-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Orchestration Service with CAMUNDA BPM
+  orchestration-service:
+    build:
+      context: .
+      dockerfile: microservices/orchestration-service/Dockerfile
+      args:
+        - VERSION=${ORCHESTRATION_SERVICE_VERSION:-0.1.0}
+    image: financer/orchestration-service:${ORCHESTRATION_SERVICE_VERSION:-0.1.0}
+    container_name: financer-orchestration-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      transaction-service:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication
+      - CAMUNDA_BPM_DATABASE_TYPE=postgres
+      - CAMUNDA_BPM_DATABASE_SCHEMA_UPDATE=true
+      - LOGGING_LEVEL_COM_FINANCER_ORCHESTRATION=DEBUG
+      - LOGGING_LEVEL_ORG_CAMUNDA_BPM=INFO
+    networks:
+      - financer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/orchestration-service/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
 networks:
   financer-network:
     external: true

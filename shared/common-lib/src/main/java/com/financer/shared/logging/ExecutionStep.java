@@ -14,6 +14,9 @@ public enum ExecutionStep {
     PROCESSING("PROCESSING", "Processamento"),
     PERSISTENCE("PERSISTENCE", "Persistência de dados"),
     INTEGRATION("INTEGRATION", "Integração com serviços"),
+    AUTHORIZATION("AUTHORIZATION", "Autorização de acesso"),
+    TRANSFORMATION("TRANSFORMATION", "Transformação de dados"),
+    SECURITY("SECURITY", "Verificação de segurança"),
     FINISH("FINISH", "Finalização"),
     ERROR("ERROR", "Erro na execução"),
     ROLLBACK("ROLLBACK", "Rollback de transação");

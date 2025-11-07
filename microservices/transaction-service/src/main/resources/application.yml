@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: transaction-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  config:
+    import: optional:configserver:http://config-admin:config123@config-server:8888/
+
+server:
+  port: 8083
+
+# This will be loaded from Config Server
+---
+# Local development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/financer_transactions
+    jpa:
+      hibernate:
+        ddl-auto: validate
+      show-sql: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financer
+    username: financer_user
+    password: financer_password
+    driver-class-name: org.postgresql.Driver
+
+# Eureka configuration for local development
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Logging configuration
+logging:
+  level:
+    com.financer: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.cloud: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"

@@ -1,0 +1,80 @@
+apiVersion: 1
+
+datasources:
+  # Prometheus
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "30s"
+      httpMethod: "POST"
+      manageAlerts: true
+      alertmanagerUid: "alertmanager"
+
+  # Loki for logs
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      maxLines: 1000
+
+  # Jaeger for tracing
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: true
+    jsonData:
+      tracesToLogs:
+        datasourceUid: "loki"
+        tags: ["job", "instance", "pod", "namespace"]
+        mappedTags: [{ key: "service.name", value: "service" }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: "1h"
+        spanEndTimeShift: "-1h"
+        filterByTraceID: false
+        filterBySpanID: false
+
+  # Tempo for distributed tracing
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      tracesToLogs:
+        datasourceUid: "loki"
+        tags: ["job", "instance"]
+        mappedTags: [{ key: "service_name", value: "service" }]
+        mapTagNamesEnabled: false
+        spanStartTimeShift: "1h"
+        spanEndTimeShift: "-1h"
+      tracesToMetrics:
+        datasourceUid: "prometheus"
+        tags: [{ key: "service.name", value: "service" }, { key: "job" }]
+        queries:
+          - name: "Sample query"
+            query: "sum(rate(tempo_spanmetrics_latency_bucket{$$__tags}[5m]))"
+      serviceMap:
+        datasourceUid: "prometheus"
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: "loki"
+
+  # Alertmanager
+  - name: Alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    uid: "alertmanager"
+    editable: true
+    jsonData:
+      implementation: "prometheus"

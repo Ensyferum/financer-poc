@@ -37,9 +37,10 @@ financer/
 │   ├── transaction-service/    # 🚧 Gestão de transações
 │   └── orchestration-service/  # 🚧 Orquestração
 ├── 📁 shared/                  # Bibliotecas compartilhadas
-│   └── common-lib/             # ✅ Utilitários comuns
+│   ├── common-lib/             # ✅ Utilitários comuns
+│   └── eureka-integration/     # ✅ Service Discovery
 ├── 📁 infrastructure/          # ✅ Configurações de infraestrutura
-├── 📁 database-migration-py/   # ✅ Sistema de migração Python
+├── 📁 database-migration/      # ✅ Sistema unificado de migração
 ├── 📁 frontend/               # 🚧 Aplicação Angular
 ├── 📁 tests/                  # 🚧 Testes funcionais
 ├── 📁 scripts/                # ✅ Scripts de automação

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn" 
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI" 
+                  id="Definitions_1" 
+                  targetNamespace="http://bpmn.io/schema/bpmn" 
+                  exporter="Camunda Modeler" 
+                  exporterVersion="5.15.0">
+  
+  <bpmn:process id="transfer-saga-process" name="Transfer Saga Process" isExecutable="true">
+    
+    <bpmn:startEvent id="StartEvent_1" name="Start Transfer">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Step 1: Create Transfer Transaction -->
+    <bpmn:serviceTask id="CreateTransactionTask" 
+                      name="Create Transaction" 
+                      camunda:delegateExpression="${createTransactionDelegate}">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 2: Validate Source Account -->
+    <bpmn:serviceTask id="ValidateSourceAccountTask" 
+                      name="Validate Source Account" 
+                      camunda:delegateExpression="${validateAccountDelegate}">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 3: Debit Source Account -->
+    <bpmn:serviceTask id="DebitSourceAccountTask" 
+                      name="Debit Source Account" 
+                      camunda:delegateExpression="${debitAccountDelegate}">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 4: Credit Target Account -->
+    <bpmn:serviceTask id="CreditTargetAccountTask" 
+                      name="Credit Target Account" 
+                      camunda:delegateExpression="${creditAccountDelegate}">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 5: Update Transaction Status -->
+    <bpmn:serviceTask id="UpdateTransactionStatusTask" 
+                      name="Update Transaction Status" 
+                      camunda:delegateExpression="${updateTransactionStatusDelegate}">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_Success" name="Transfer Completed">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Error Handling -->
+    <bpmn:boundaryEvent id="BoundaryEvent_Error" 
+                        name="Error Occurred" 
+                        attachedToRef="CreateTransactionTask">
+      <bpmn:outgoing>Flow_Error_1</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_1" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_ValidationError" 
+                        name="Validation Error" 
+                        attachedToRef="ValidateSourceAccountTask">
+      <bpmn:outgoing>Flow_Error_2</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_2" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_DebitError" 
+                        name="Debit Error" 
+                        attachedToRef="DebitSourceAccountTask">
+      <bpmn:outgoing>Flow_Error_3</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_3" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_CreditError" 
+                        name="Credit Error" 
+                        attachedToRef="CreditTargetAccountTask">
+      <bpmn:outgoing>Flow_Error_4</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_4" />
+    </bpmn:boundaryEvent>
+    
+    <!-- Compensation Tasks -->
+    <bpmn:serviceTask id="CompensateTransactionTask" 
+                      name="Compensate Transaction" 
+                      camunda:delegateExpression="${compensateTransactionDelegate}">
+      <bpmn:incoming>Flow_Error_1</bpmn:incoming>
+      <bpmn:incoming>Flow_Error_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Compensation_1</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="CompensateDebitTask" 
+                      name="Compensate Debit" 
+                      camunda:delegateExpression="${compensateDebitDelegate}">
+      <bpmn:incoming>Flow_Error_3</bpmn:incoming>
+      <bpmn:incoming>Flow_Error_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Compensation_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="CompensateCreditTask" 
+                      name="Compensate Credit" 
+                      camunda:delegateExpression="${compensateCreditDelegate}">
+      <bpmn:incoming>Flow_Error_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_Compensation_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_Compensated" name="Transfer Compensated">
+      <bpmn:incoming>Flow_Compensation_1</bpmn:incoming>
+      <bpmn:incoming>Flow_Compensation_2</bpmn:incoming>
+      <bpmn:incoming>Flow_Compensation_3</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="CreateTransactionTask" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="CreateTransactionTask" targetRef="ValidateSourceAccountTask" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="ValidateSourceAccountTask" targetRef="DebitSourceAccountTask" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="DebitSourceAccountTask" targetRef="CreditTargetAccountTask" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="CreditTargetAccountTask" targetRef="UpdateTransactionStatusTask" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="UpdateTransactionStatusTask" targetRef="EndEvent_Success" />
+    
+    <!-- Error Flows -->
+    <bpmn:sequenceFlow id="Flow_Error_1" sourceRef="BoundaryEvent_Error" targetRef="CompensateTransactionTask" />
+    <bpmn:sequenceFlow id="Flow_Error_2" sourceRef="BoundaryEvent_ValidationError" targetRef="CompensateTransactionTask" />
+    <bpmn:sequenceFlow id="Flow_Error_3" sourceRef="BoundaryEvent_DebitError" targetRef="CompensateDebitTask" />
+    <bpmn:sequenceFlow id="Flow_Error_4" sourceRef="BoundaryEvent_CreditError" targetRef="CompensateDebitTask" />
+    
+    <!-- Compensation Flows -->
+    <bpmn:sequenceFlow id="Flow_Compensation_1" sourceRef="CompensateTransactionTask" targetRef="EndEvent_Compensated" />
+    <bpmn:sequenceFlow id="Flow_Compensation_2" sourceRef="CompensateDebitTask" targetRef="EndEvent_Compensated" />
+    <bpmn:sequenceFlow id="Flow_Compensation_3" sourceRef="CompensateCreditTask" targetRef="EndEvent_Compensated" />
+    
+  </bpmn:process>
+  
+</bpmn:definitions>

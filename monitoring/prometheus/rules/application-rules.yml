@@ -1,0 +1,79 @@
+groups:
+  - name: financer.application.rules
+    rules:
+      # Service availability
+      - alert: ServiceDown
+        expr: up{job=~"spring-boot-apps|user-service|account-service|transaction-service|notification-service|report-service|api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+      # High response time
+      - alert: HighResponseTime
+        expr: http_request_duration_seconds_bucket{le="1.0"} / ignoring(le) http_request_duration_seconds_count < 0.95
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High response time on {{ $labels.instance }}"
+          description: "95th percentile response time is above 1 second for {{ $labels.instance }}"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Error rate is above 5% for {{ $labels.instance }}"
+
+      # JVM Memory usage
+      - alert: HighJVMMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High JVM memory usage on {{ $labels.instance }}"
+          description: "JVM heap memory usage is above 85% on {{ $labels.instance }}"
+
+      # Database connection pool
+      - alert: HighDatabaseConnectionUsage
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High database connection usage on {{ $labels.instance }}"
+          description: "Database connection pool usage is above 80% on {{ $labels.instance }}"
+
+      # Kafka consumer lag
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag_sum > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Kafka consumer lag is above 1000 messages for {{ $labels.instance }}"
+
+      # API Gateway rate limiting
+      - alert: RateLimitExceeded
+        expr: rate(http_requests_total{status="429"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Rate limit exceeded on API Gateway"
+          description: "Rate limit is being exceeded on API Gateway with {{ $value }} requests/sec"

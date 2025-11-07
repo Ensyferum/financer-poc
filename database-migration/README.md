@@ -1,32 +1,59 @@
-# Database Migration Tool
+# Database Migration Tool - Unified
 
-Um sistema de migração de banco de dados leve e versionado para o projeto Financer.
+**Sistema de migração de banco de dados consolidado e unificado para o projeto Financer.**
 
 ## 🚀 Características
 
-- **Lightweight**: Sem overhead do Spring Boot, apenas Java puro
-- **Versionado**: Controle completo de versões usando Flyway
-- **Multi-database**: Suporte para PostgreSQL e MongoDB
-- **Serverless**: Pode ser executado como container temporário
+- **Lightweight**: Baseado em Java com minimal Spring Boot overhead
+- **Versionado**: Controle completo de versões usando Flyway (PostgreSQL) e scripts personalizados (MongoDB)
+- **Multi-database**: Suporte robusto para PostgreSQL e MongoDB
+- **Serverless**: Executável como container temporário ou aplicação standalone
+- **Config Server Integration**: Integração com Spring Cloud Config Server
+- **Execution Tracking**: Rastreamento completo de execuções com audit trail
 - **Flexível**: Suporte para ambientes local, Docker e produção
+- **Reporting**: Relatórios detalhados de execução e status
 
-## 📁 Estrutura
+## 📁 Estrutura Consolidada
 
 ```
 database-migration/
 ├── src/main/
 │   ├── java/com/financer/migration/
-│   │   └── MigrationRunner.java          # Executor principal
+│   │   ├── MigrationRunner.java          # Executor principal unificado
+│   │   ├── config/                       # Configurações centralizadas
+│   │   ├── engines/                      # Engines PostgreSQL e MongoDB
+│   │   ├── tracking/                     # Sistema de rastreamento
+│   │   └── reporting/                    # Geração de relatórios
 │   └── resources/db/migration/
-│       ├── postgresql/                   # Scripts SQL versionados
-│       │   └── V1.0.0__Create_initial_database_structure.sql
+│       ├── postgresql/                   # Scripts SQL versionados (Flyway)
+│       │   ├── V1.0.0__Create_initial_database_structure.sql
+│       │   ├── V2.0.0__Create_transaction_service_schema.sql
+│       │   ├── V2.1.0__Create_balance_service_schema.sql
+│       │   └── V2.2.0__Create_orchestration_service_schema.sql
 │       └── mongodb/                      # Scripts MongoDB versionados
-│           └── V1.1.0__Create_transaction_collections.js
+│           └── V1.0.0__Create_initial_collections.json
 ├── migrate.bat                           # Script Windows
 ├── migrate.sh                            # Script Linux/Mac
-├── Dockerfile                            # Container lightweight
-└── pom.xml                              # Configuração Maven
+├── Dockerfile                            # Container otimizado
+└── pom.xml                              # Configuração Maven unificada
 ```
+
+## 🔗 Consolidação de Projetos
+
+Este projeto consolidou as funcionalidades de três projetos anteriores:
+
+1. **`database/`** - Scripts básicos de inicialização → **Integrado**
+2. **`database-migration/`** - Sistema Java principal → **Base mantida**
+3. **`database-migration-py/`** - Sistema Python com recursos avançados → **Funcionalidades migradas**
+
+### Funcionalidades Migradas do Sistema Python:
+- ✅ Execution tracking e audit trail
+- ✅ Relatórios detalhados de execução
+- ✅ Configuração centralizada via Config Server
+- ✅ Sistema de logging avançado
+- ✅ Validação de checksum de migrations
+- ✅ Histórico completo de execuções
+- ✅ MongoDB schemas com validação JSON
 
 ## 🛠️ Uso
 

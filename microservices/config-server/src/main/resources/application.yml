@@ -11,10 +11,7 @@ spring:
       server:
         native:
           search-locations: classpath:/config-repo/
-        git:
-          uri: file://${user.home}/financer-config-repo
-          default-label: main
-          clone-on-start: true
+        default-application-name: application
   security:
     user:
       name: config-admin

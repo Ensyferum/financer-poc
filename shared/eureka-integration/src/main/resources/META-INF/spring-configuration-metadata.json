@@ -1,0 +1,115 @@
+{
+  "groups": [
+    {
+      "name": "financer.eureka",
+      "type": "com.financer.eureka.config.EurekaIntegrationProperties",
+      "description": "Configuration properties for Financer Eureka Integration Library."
+    },
+    {
+      "name": "financer.eureka.docker",
+      "type": "com.financer.eureka.config.EurekaIntegrationProperties$DockerConfig",
+      "description": "Docker-specific configuration for Eureka integration."
+    }
+  ],
+  "properties": [
+    {
+      "name": "financer.eureka.local-url",
+      "type": "java.lang.String",
+      "description": "URL of the Eureka Server for local development environment.",
+      "defaultValue": "http://localhost:8761/eureka/"
+    },
+    {
+      "name": "financer.eureka.docker-url",
+      "type": "java.lang.String",
+      "description": "URL of the Eureka Server for Docker environment.",
+      "defaultValue": "http://financer-eureka-server:8761/eureka/"
+    },
+    {
+      "name": "financer.eureka.lease-renewal-interval",
+      "type": "java.lang.Integer",
+      "description": "Lease renewal interval in seconds.",
+      "defaultValue": 30
+    },
+    {
+      "name": "financer.eureka.lease-expiration-duration",
+      "type": "java.lang.Integer",
+      "description": "Lease expiration duration in seconds.",
+      "defaultValue": 90
+    },
+    {
+      "name": "financer.eureka.prefer-ip-address",
+      "type": "java.lang.Boolean",
+      "description": "Whether to prefer IP address over hostname for service registration.",
+      "defaultValue": true
+    },
+    {
+      "name": "financer.eureka.register-with-eureka",
+      "type": "java.lang.Boolean",
+      "description": "Whether to register this service with Eureka.",
+      "defaultValue": true
+    },
+    {
+      "name": "financer.eureka.fetch-registry",
+      "type": "java.lang.Boolean",
+      "description": "Whether to fetch registry information from Eureka.",
+      "defaultValue": true
+    },
+    {
+      "name": "financer.eureka.connection-timeout",
+      "type": "java.lang.Integer",
+      "description": "Connection timeout for Eureka client in seconds.",
+      "defaultValue": 5
+    },
+    {
+      "name": "financer.eureka.read-timeout",
+      "type": "java.lang.Integer",
+      "description": "Read timeout for Eureka client in seconds.",
+      "defaultValue": 8
+    },
+    {
+      "name": "financer.eureka.enable-health-check",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enable health check via Eureka.",
+      "defaultValue": true
+    },
+    {
+      "name": "financer.eureka.docker.prefer-ip-address",
+      "type": "java.lang.Boolean",
+      "description": "Whether to prefer IP address over hostname in Docker environment.",
+      "defaultValue": false
+    },
+    {
+      "name": "financer.eureka.docker.hostname",
+      "type": "java.lang.String",
+      "description": "Custom hostname for Docker environment."
+    }
+  ],
+  "hints": [
+    {
+      "name": "financer.eureka.local-url",
+      "values": [
+        {
+          "value": "http://localhost:8761/eureka/",
+          "description": "Default local Eureka server URL"
+        },
+        {
+          "value": "http://127.0.0.1:8761/eureka/",
+          "description": "Alternative local Eureka server URL"
+        }
+      ]
+    },
+    {
+      "name": "financer.eureka.docker-url",
+      "values": [
+        {
+          "value": "http://financer-eureka-server:8761/eureka/",
+          "description": "Default Docker Eureka server URL"
+        },
+        {
+          "value": "http://eureka-server:8761/eureka/",
+          "description": "Alternative Docker Eureka server URL"
+        }
+      ]
+    }
+  ]
+}

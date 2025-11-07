@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn" 
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI" 
+                  id="Definitions_2" 
+                  targetNamespace="http://bpmn.io/schema/bpmn" 
+                  exporter="Camunda Modeler" 
+                  exporterVersion="5.15.0">
+  
+  <bpmn:process id="payment-saga-process" name="Payment Saga Process" isExecutable="true">
+    
+    <bpmn:startEvent id="StartEvent_Payment" name="Start Payment">
+      <bpmn:outgoing>Flow_P1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Step 1: Create Payment Transaction -->
+    <bpmn:serviceTask id="CreatePaymentTransactionTask" 
+                      name="Create Payment Transaction" 
+                      camunda:delegateExpression="${createPaymentTransactionDelegate}">
+      <bpmn:incoming>Flow_P1</bpmn:incoming>
+      <bpmn:outgoing>Flow_P2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 2: Validate Payment Method -->
+    <bpmn:serviceTask id="ValidatePaymentMethodTask" 
+                      name="Validate Payment Method" 
+                      camunda:delegateExpression="${validatePaymentMethodDelegate}">
+      <bpmn:incoming>Flow_P2</bpmn:incoming>
+      <bpmn:outgoing>Flow_P3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 3: Authorize Payment -->
+    <bpmn:serviceTask id="AuthorizePaymentTask" 
+                      name="Authorize Payment" 
+                      camunda:delegateExpression="${authorizePaymentDelegate}">
+      <bpmn:incoming>Flow_P3</bpmn:incoming>
+      <bpmn:outgoing>Flow_P4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 4: Process Payment -->
+    <bpmn:serviceTask id="ProcessPaymentTask" 
+                      name="Process Payment" 
+                      camunda:delegateExpression="${processPaymentDelegate}">
+      <bpmn:incoming>Flow_P4</bpmn:incoming>
+      <bpmn:outgoing>Flow_P5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 5: Update Account Balance -->
+    <bpmn:serviceTask id="UpdateAccountBalanceTask" 
+                      name="Update Account Balance" 
+                      camunda:delegateExpression="${updateAccountBalanceDelegate}">
+      <bpmn:incoming>Flow_P5</bpmn:incoming>
+      <bpmn:outgoing>Flow_P6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 6: Send Payment Confirmation -->
+    <bpmn:serviceTask id="SendPaymentConfirmationTask" 
+                      name="Send Payment Confirmation" 
+                      camunda:delegateExpression="${sendPaymentConfirmationDelegate}">
+      <bpmn:incoming>Flow_P6</bpmn:incoming>
+      <bpmn:outgoing>Flow_P7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_PaymentSuccess" name="Payment Completed">
+      <bpmn:incoming>Flow_P7</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Error Handling -->
+    <bpmn:boundaryEvent id="BoundaryEvent_PaymentError" 
+                        name="Payment Creation Error" 
+                        attachedToRef="CreatePaymentTransactionTask">
+      <bpmn:outgoing>Flow_PError_1</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_P1" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_ValidationError" 
+                        name="Payment Method Error" 
+                        attachedToRef="ValidatePaymentMethodTask">
+      <bpmn:outgoing>Flow_PError_2</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_P2" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_AuthError" 
+                        name="Authorization Error" 
+                        attachedToRef="AuthorizePaymentTask">
+      <bpmn:outgoing>Flow_PError_3</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_P3" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_ProcessError" 
+                        name="Processing Error" 
+                        attachedToRef="ProcessPaymentTask">
+      <bpmn:outgoing>Flow_PError_4</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_P4" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_BalanceError" 
+                        name="Balance Update Error" 
+                        attachedToRef="UpdateAccountBalanceTask">
+      <bpmn:outgoing>Flow_PError_5</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_P5" />
+    </bpmn:boundaryEvent>
+    
+    <!-- Compensation Tasks -->
+    <bpmn:serviceTask id="CompensatePaymentTransactionTask" 
+                      name="Compensate Payment Transaction" 
+                      camunda:delegateExpression="${compensatePaymentTransactionDelegate}">
+      <bpmn:incoming>Flow_PError_1</bpmn:incoming>
+      <bpmn:incoming>Flow_PError_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_PCompensation_1</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="RevokeAuthorizationTask" 
+                      name="Revoke Authorization" 
+                      camunda:delegateExpression="${revokeAuthorizationDelegate}">
+      <bpmn:incoming>Flow_PError_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_PCompensation_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="RefundPaymentTask" 
+                      name="Refund Payment" 
+                      camunda:delegateExpression="${refundPaymentDelegate}">
+      <bpmn:incoming>Flow_PError_4</bpmn:incoming>
+      <bpmn:incoming>Flow_PError_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_PCompensation_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="RevertBalanceUpdateTask" 
+                      name="Revert Balance Update" 
+                      camunda:delegateExpression="${revertBalanceUpdateDelegate}">
+      <bpmn:incoming>Flow_PError_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_PCompensation_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_PaymentCompensated" name="Payment Compensated">
+      <bpmn:incoming>Flow_PCompensation_1</bpmn:incoming>
+      <bpmn:incoming>Flow_PCompensation_2</bpmn:incoming>
+      <bpmn:incoming>Flow_PCompensation_3</bpmn:incoming>
+      <bpmn:incoming>Flow_PCompensation_4</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_P1" sourceRef="StartEvent_Payment" targetRef="CreatePaymentTransactionTask" />
+    <bpmn:sequenceFlow id="Flow_P2" sourceRef="CreatePaymentTransactionTask" targetRef="ValidatePaymentMethodTask" />
+    <bpmn:sequenceFlow id="Flow_P3" sourceRef="ValidatePaymentMethodTask" targetRef="AuthorizePaymentTask" />
+    <bpmn:sequenceFlow id="Flow_P4" sourceRef="AuthorizePaymentTask" targetRef="ProcessPaymentTask" />
+    <bpmn:sequenceFlow id="Flow_P5" sourceRef="ProcessPaymentTask" targetRef="UpdateAccountBalanceTask" />
+    <bpmn:sequenceFlow id="Flow_P6" sourceRef="UpdateAccountBalanceTask" targetRef="SendPaymentConfirmationTask" />
+    <bpmn:sequenceFlow id="Flow_P7" sourceRef="SendPaymentConfirmationTask" targetRef="EndEvent_PaymentSuccess" />
+    
+    <!-- Error Flows -->
+    <bpmn:sequenceFlow id="Flow_PError_1" sourceRef="BoundaryEvent_PaymentError" targetRef="CompensatePaymentTransactionTask" />
+    <bpmn:sequenceFlow id="Flow_PError_2" sourceRef="BoundaryEvent_ValidationError" targetRef="CompensatePaymentTransactionTask" />
+    <bpmn:sequenceFlow id="Flow_PError_3" sourceRef="BoundaryEvent_AuthError" targetRef="RevokeAuthorizationTask" />
+    <bpmn:sequenceFlow id="Flow_PError_4" sourceRef="BoundaryEvent_ProcessError" targetRef="RefundPaymentTask" />
+    <bpmn:sequenceFlow id="Flow_PError_5" sourceRef="BoundaryEvent_BalanceError" targetRef="RefundPaymentTask" />
+    
+    <!-- Compensation Flows -->
+    <bpmn:sequenceFlow id="Flow_PCompensation_1" sourceRef="CompensatePaymentTransactionTask" targetRef="EndEvent_PaymentCompensated" />
+    <bpmn:sequenceFlow id="Flow_PCompensation_2" sourceRef="RevokeAuthorizationTask" targetRef="EndEvent_PaymentCompensated" />
+    <bpmn:sequenceFlow id="Flow_PCompensation_3" sourceRef="RefundPaymentTask" targetRef="EndEvent_PaymentCompensated" />
+    <bpmn:sequenceFlow id="Flow_PCompensation_4" sourceRef="RevertBalanceUpdateTask" targetRef="EndEvent_PaymentCompensated" />
+    
+  </bpmn:process>
+  
+</bpmn:definitions>

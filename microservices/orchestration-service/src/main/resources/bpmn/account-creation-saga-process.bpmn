@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn" 
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI" 
+                  id="Definitions_3" 
+                  targetNamespace="http://bpmn.io/schema/bpmn" 
+                  exporter="Camunda Modeler" 
+                  exporterVersion="5.15.0">
+  
+  <bpmn:process id="account-creation-saga-process" name="Account Creation Saga Process" isExecutable="true">
+    
+    <bpmn:startEvent id="StartEvent_Account" name="Start Account Creation">
+      <bpmn:outgoing>Flow_A1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Step 1: Validate Customer Information -->
+    <bpmn:serviceTask id="ValidateCustomerInfoTask" 
+                      name="Validate Customer Information" 
+                      camunda:delegateExpression="${validateCustomerInfoDelegate}">
+      <bpmn:incoming>Flow_A1</bpmn:incoming>
+      <bpmn:outgoing>Flow_A2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 2: Check Customer Eligibility -->
+    <bpmn:serviceTask id="CheckCustomerEligibilityTask" 
+                      name="Check Customer Eligibility" 
+                      camunda:delegateExpression="${checkCustomerEligibilityDelegate}">
+      <bpmn:incoming>Flow_A2</bpmn:incoming>
+      <bpmn:outgoing>Flow_A3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 3: Create Customer Profile -->
+    <bpmn:serviceTask id="CreateCustomerProfileTask" 
+                      name="Create Customer Profile" 
+                      camunda:delegateExpression="${createCustomerProfileDelegate}">
+      <bpmn:incoming>Flow_A3</bpmn:incoming>
+      <bpmn:outgoing>Flow_A4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 4: Generate Account Number -->
+    <bpmn:serviceTask id="GenerateAccountNumberTask" 
+                      name="Generate Account Number" 
+                      camunda:delegateExpression="${generateAccountNumberDelegate}">
+      <bpmn:incoming>Flow_A4</bpmn:incoming>
+      <bpmn:outgoing>Flow_A5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 5: Create Account -->
+    <bpmn:serviceTask id="CreateAccountTask" 
+                      name="Create Account" 
+                      camunda:delegateExpression="${createAccountDelegate}">
+      <bpmn:incoming>Flow_A5</bpmn:incoming>
+      <bpmn:outgoing>Flow_A6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 6: Setup Initial Balance -->
+    <bpmn:serviceTask id="SetupInitialBalanceTask" 
+                      name="Setup Initial Balance" 
+                      camunda:delegateExpression="${setupInitialBalanceDelegate}">
+      <bpmn:incoming>Flow_A6</bpmn:incoming>
+      <bpmn:outgoing>Flow_A7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 7: Create Welcome Transaction -->
+    <bpmn:serviceTask id="CreateWelcomeTransactionTask" 
+                      name="Create Welcome Transaction" 
+                      camunda:delegateExpression="${createWelcomeTransactionDelegate}">
+      <bpmn:incoming>Flow_A7</bpmn:incoming>
+      <bpmn:outgoing>Flow_A8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 8: Send Welcome Email -->
+    <bpmn:serviceTask id="SendWelcomeEmailTask" 
+                      name="Send Welcome Email" 
+                      camunda:delegateExpression="${sendWelcomeEmailDelegate}">
+      <bpmn:incoming>Flow_A8</bpmn:incoming>
+      <bpmn:outgoing>Flow_A9</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Step 9: Activate Account -->
+    <bpmn:serviceTask id="ActivateAccountTask" 
+                      name="Activate Account" 
+                      camunda:delegateExpression="${activateAccountDelegate}">
+      <bpmn:incoming>Flow_A9</bpmn:incoming>
+      <bpmn:outgoing>Flow_A10</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_AccountSuccess" name="Account Created Successfully">
+      <bpmn:incoming>Flow_A10</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Error Handling -->
+    <bpmn:boundaryEvent id="BoundaryEvent_ValidationError" 
+                        name="Validation Error" 
+                        attachedToRef="ValidateCustomerInfoTask">
+      <bpmn:outgoing>Flow_AError_1</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_A1" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_EligibilityError" 
+                        name="Eligibility Error" 
+                        attachedToRef="CheckCustomerEligibilityTask">
+      <bpmn:outgoing>Flow_AError_2</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_A2" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_ProfileError" 
+                        name="Profile Creation Error" 
+                        attachedToRef="CreateCustomerProfileTask">
+      <bpmn:outgoing>Flow_AError_3</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_A3" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_AccountError" 
+                        name="Account Creation Error" 
+                        attachedToRef="CreateAccountTask">
+      <bpmn:outgoing>Flow_AError_4</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_A4" />
+    </bpmn:boundaryEvent>
+    
+    <bpmn:boundaryEvent id="BoundaryEvent_BalanceError" 
+                        name="Balance Setup Error" 
+                        attachedToRef="SetupInitialBalanceTask">
+      <bpmn:outgoing>Flow_AError_5</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_A5" />
+    </bpmn:boundaryEvent>
+    
+    <!-- Compensation Tasks -->
+    <bpmn:serviceTask id="RejectAccountCreationTask" 
+                      name="Reject Account Creation" 
+                      camunda:delegateExpression="${rejectAccountCreationDelegate}">
+      <bpmn:incoming>Flow_AError_1</bpmn:incoming>
+      <bpmn:incoming>Flow_AError_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_ACompensation_1</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="DeleteCustomerProfileTask" 
+                      name="Delete Customer Profile" 
+                      camunda:delegateExpression="${deleteCustomerProfileDelegate}">
+      <bpmn:incoming>Flow_AError_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_ACompensation_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="DeleteAccountTask" 
+                      name="Delete Account" 
+                      camunda:delegateExpression="${deleteAccountDelegate}">
+      <bpmn:incoming>Flow_AError_4</bpmn:incoming>
+      <bpmn:incoming>Flow_AError_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_ACompensation_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:serviceTask id="RevertInitialBalanceTask" 
+                      name="Revert Initial Balance" 
+                      camunda:delegateExpression="${revertInitialBalanceDelegate}">
+      <bpmn:incoming>Flow_AError_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_ACompensation_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <bpmn:endEvent id="EndEvent_AccountCompensated" name="Account Creation Compensated">
+      <bpmn:incoming>Flow_ACompensation_1</bpmn:incoming>
+      <bpmn:incoming>Flow_ACompensation_2</bpmn:incoming>
+      <bpmn:incoming>Flow_ACompensation_3</bpmn:incoming>
+      <bpmn:incoming>Flow_ACompensation_4</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_A1" sourceRef="StartEvent_Account" targetRef="ValidateCustomerInfoTask" />
+    <bpmn:sequenceFlow id="Flow_A2" sourceRef="ValidateCustomerInfoTask" targetRef="CheckCustomerEligibilityTask" />
+    <bpmn:sequenceFlow id="Flow_A3" sourceRef="CheckCustomerEligibilityTask" targetRef="CreateCustomerProfileTask" />
+    <bpmn:sequenceFlow id="Flow_A4" sourceRef="CreateCustomerProfileTask" targetRef="GenerateAccountNumberTask" />
+    <bpmn:sequenceFlow id="Flow_A5" sourceRef="GenerateAccountNumberTask" targetRef="CreateAccountTask" />
+    <bpmn:sequenceFlow id="Flow_A6" sourceRef="CreateAccountTask" targetRef="SetupInitialBalanceTask" />
+    <bpmn:sequenceFlow id="Flow_A7" sourceRef="SetupInitialBalanceTask" targetRef="CreateWelcomeTransactionTask" />
+    <bpmn:sequenceFlow id="Flow_A8" sourceRef="CreateWelcomeTransactionTask" targetRef="SendWelcomeEmailTask" />
+    <bpmn:sequenceFlow id="Flow_A9" sourceRef="SendWelcomeEmailTask" targetRef="ActivateAccountTask" />
+    <bpmn:sequenceFlow id="Flow_A10" sourceRef="ActivateAccountTask" targetRef="EndEvent_AccountSuccess" />
+    
+    <!-- Error Flows -->
+    <bpmn:sequenceFlow id="Flow_AError_1" sourceRef="BoundaryEvent_ValidationError" targetRef="RejectAccountCreationTask" />
+    <bpmn:sequenceFlow id="Flow_AError_2" sourceRef="BoundaryEvent_EligibilityError" targetRef="RejectAccountCreationTask" />
+    <bpmn:sequenceFlow id="Flow_AError_3" sourceRef="BoundaryEvent_ProfileError" targetRef="DeleteCustomerProfileTask" />
+    <bpmn:sequenceFlow id="Flow_AError_4" sourceRef="BoundaryEvent_AccountError" targetRef="DeleteAccountTask" />
+    <bpmn:sequenceFlow id="Flow_AError_5" sourceRef="BoundaryEvent_BalanceError" targetRef="DeleteAccountTask" />
+    
+    <!-- Compensation Flows -->
+    <bpmn:sequenceFlow id="Flow_ACompensation_1" sourceRef="RejectAccountCreationTask" targetRef="EndEvent_AccountCompensated" />
+    <bpmn:sequenceFlow id="Flow_ACompensation_2" sourceRef="DeleteCustomerProfileTask" targetRef="EndEvent_AccountCompensated" />
+    <bpmn:sequenceFlow id="Flow_ACompensation_3" sourceRef="DeleteAccountTask" targetRef="EndEvent_AccountCompensated" />
+    <bpmn:sequenceFlow id="Flow_ACompensation_4" sourceRef="RevertInitialBalanceTask" targetRef="EndEvent_AccountCompensated" />
+    
+  </bpmn:process>
+  
+</bpmn:definitions>
