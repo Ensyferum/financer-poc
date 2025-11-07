@@ -4,7 +4,9 @@ services:
     build:
       context: ./microservices/config-server
       dockerfile: Dockerfile
-    image: financer/config-server
+      args:
+        - VERSION=${CONFIG_SERVER_VERSION:-1.0.0}
+    image: financer/config-server:${CONFIG_SERVER_VERSION:-1.0.0}
     container_name: financer-config-server
     ports:
       - "8888:8888"
@@ -24,7 +26,9 @@ services:
     build:
       context: ./microservices/eureka-server
       dockerfile: Dockerfile
-    image: financer/eureka-server
+      args:
+        - VERSION=${EUREKA_SERVER_VERSION:-1.0.0}
+    image: financer/eureka-server:${EUREKA_SERVER_VERSION:-1.0.0}
     container_name: financer-eureka-server
     depends_on:
       config-server:
@@ -48,7 +52,9 @@ services:
     build:
       context: ./microservices/api-gateway
       dockerfile: Dockerfile
-    image: financer/api-gateway
+      args:
+        - VERSION=${API_GATEWAY_VERSION:-1.0.0}
+    image: financer/api-gateway:${API_GATEWAY_VERSION:-1.0.0}
     container_name: financer-api-gateway
     depends_on:
       config-server:
@@ -73,7 +79,9 @@ services:
     build:
       context: ./microservices/account-service
       dockerfile: Dockerfile
-    image: financer/account-service
+      args:
+        - VERSION=${ACCOUNT_SERVICE_VERSION:-1.0.0}
+    image: financer/account-service:${ACCOUNT_SERVICE_VERSION:-1.0.0}
     container_name: financer-account-service
     depends_on:
       config-server:

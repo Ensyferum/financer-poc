@@ -111,4 +111,6 @@ Each microservice maintains its own version while following the project's semant
 - `account-service`: Business service versions
 - `transaction-service`: Transaction processing versions
 - `orchestration-service`: Event orchestration versions
-- `common-lib`: Shared library versions
+- `common-lib`: Shared library versions# 1.0.1 - 07/11/2025 - patch update 
+#   - eureka-server: Updated to 1.0.1 
+ 
