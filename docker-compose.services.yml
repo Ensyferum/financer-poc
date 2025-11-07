@@ -101,4 +101,7 @@ services:
       retries: 3
       start_period: 60s
 
-# Network será definida no arquivo infrastructure
+networks:
+  financer-network:
+    external: true
+    name: financer_financer-network
