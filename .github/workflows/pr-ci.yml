@@ -1,0 +1,242 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main, master, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Code Quality and Security
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build and analyze with SonarQube
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=financer-poc \
+            -Dsonar.organization=${{ github.repository_owner }} \
+            -Dsonar.host.url=https://sonarcloud.io
+
+      - name: Run SpotBugs
+        run: |
+          mvn compile spotbugs:check -DskipTests
+
+  # Job 2: Detect Changes for PR
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          filters: |
+            config-server:
+              - 'microservices/config-server/**'
+              - 'pom.xml'
+            eureka-server:
+              - 'microservices/eureka-server/**'
+              - 'pom.xml'
+            api-gateway:
+              - 'microservices/api-gateway/**'
+              - 'pom.xml'
+            account-service:
+              - 'microservices/account-service/**'
+              - 'pom.xml'
+            common-lib:
+              - 'shared/common-lib/**'
+              - 'pom.xml'
+            eureka-integration:
+              - 'shared/eureka-integration/**'
+              - 'pom.xml'
+
+      - name: Set build matrix
+        id: set-matrix
+        run: |
+          matrix=()
+          
+          if [[ "${{ steps.changes.outputs.config-server }}" == "true" ]]; then
+            matrix+=('{"service":"config-server","path":"microservices/config-server","version":"1.0.0","port":"8888"}')
+          fi
+          
+          if [[ "${{ steps.changes.outputs.eureka-server }}" == "true" ]]; then
+            matrix+=('{"service":"eureka-server","path":"microservices/eureka-server","version":"1.0.1","port":"8761"}')
+          fi
+          
+          if [[ "${{ steps.changes.outputs.api-gateway }}" == "true" ]]; then
+            matrix+=('{"service":"api-gateway","path":"microservices/api-gateway","version":"1.0.0","port":"8080"}')
+          fi
+          
+          if [[ "${{ steps.changes.outputs.account-service }}" == "true" ]]; then
+            matrix+=('{"service":"account-service","path":"microservices/account-service","version":"1.0.2","port":"8081"}')
+          fi
+          
+          # Convert array to JSON
+          if [[ ${#matrix[@]} -gt 0 ]]; then
+            printf -v joined '%s,' "${matrix[@]}"
+            matrix_json="[${joined%,}]"
+          else
+            matrix_json="[]"
+          fi
+          
+          echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
+          echo "Build matrix: $matrix_json"
+
+  # Job 3: Build Changed Services
+  build-changed:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.matrix != '[]'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build Parent and Shared Libraries
+        run: |
+          mvn clean install -N -DskipTests
+          cd shared/common-lib && mvn clean install -DskipTests
+          cd ../eureka-integration && mvn clean install -DskipTests
+
+      - name: Build and Test ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.path }}
+          mvn clean verify
+
+      - name: Upload test coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ${{ matrix.path }}/target/site/jacoco/jacoco.xml
+          flags: ${{ matrix.service }}
+          name: codecov-${{ matrix.service }}
+
+  # Job 4: Security Check for PR
+  security-check:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.matrix != '[]'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Snyk Security Test
+        uses: snyk/actions/maven@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=${{ matrix.path }}/pom.xml
+
+  # Job 5: Comment PR with Results
+  pr-comment:
+    runs-on: ubuntu-latest
+    needs: [build-changed, security-check, code-quality]
+    if: always()
+    
+    steps:
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const buildResult = '${{ needs.build-changed.result }}';
+            const securityResult = '${{ needs.security-check.result }}';
+            const qualityResult = '${{ needs.code-quality.result }}';
+            
+            let status = '✅ All checks passed!';
+            let details = [];
+            
+            if (buildResult === 'failure') {
+              status = '❌ Build failed!';
+              details.push('- Build/Test: ❌ Failed');
+            } else {
+              details.push('- Build/Test: ✅ Passed');
+            }
+            
+            if (securityResult === 'failure') {
+              status = '⚠️ Security issues detected!';
+              details.push('- Security: ⚠️ Issues found');
+            } else {
+              details.push('- Security: ✅ Clean');
+            }
+            
+            if (qualityResult === 'failure') {
+              status = '⚠️ Code quality issues detected!';
+              details.push('- Code Quality: ⚠️ Issues found');
+            } else {
+              details.push('- Code Quality: ✅ Clean');
+            }
+            
+            const body = `## 🚀 CI/CD Results
+            
+            ${status}
+            
+            ### Details:
+            ${details.join('\n')}
+            
+            ### Next Steps:
+            ${buildResult === 'success' && securityResult === 'success' ? 
+              '- ✅ Ready for review and merge!' : 
+              '- ❌ Please fix the issues before merging'
+            }
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

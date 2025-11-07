@@ -1,0 +1,375 @@
+name: Financer CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Detect Changes and Build Matrix
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      config-server: ${{ steps.changes.outputs.config-server }}
+      eureka-server: ${{ steps.changes.outputs.eureka-server }}
+      api-gateway: ${{ steps.changes.outputs.api-gateway }}
+      account-service: ${{ steps.changes.outputs.account-service }}
+      common-lib: ${{ steps.changes.outputs.common-lib }}
+      eureka-integration: ${{ steps.changes.outputs.eureka-integration }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            config-server:
+              - 'microservices/config-server/**'
+              - 'pom.xml'
+            eureka-server:
+              - 'microservices/eureka-server/**'
+              - 'pom.xml'
+            api-gateway:
+              - 'microservices/api-gateway/**'
+              - 'pom.xml'
+            account-service:
+              - 'microservices/account-service/**'
+              - 'pom.xml'
+            common-lib:
+              - 'shared/common-lib/**'
+              - 'pom.xml'
+            eureka-integration:
+              - 'shared/eureka-integration/**'
+              - 'pom.xml'
+
+      - name: Set build matrix
+        id: set-matrix
+        run: |
+          matrix=()
+          
+          if [[ "${{ steps.changes.outputs.config-server }}" == "true" ]]; then
+            matrix+=('{"service":"config-server","path":"microservices/config-server","version":"1.0.0","port":"8888"}')
+          fi
+          
+          if [[ "${{ steps.changes.outputs.eureka-server }}" == "true" ]]; then
+            matrix+=('{"service":"eureka-server","path":"microservices/eureka-server","version":"1.0.1","port":"8761"}')
+          fi
+          
+          if [[ "${{ steps.changes.outputs.api-gateway }}" == "true" ]]; then
+            matrix+=('{"service":"api-gateway","path":"microservices/api-gateway","version":"1.0.0","port":"8080"}')
+          fi
+          
+          if [[ "${{ steps.changes.outputs.account-service }}" == "true" ]]; then
+            matrix+=('{"service":"account-service","path":"microservices/account-service","version":"1.0.2","port":"8081"}')
+          fi
+          
+          # If no microservice changes, build all on main/master branch
+          if [[ ${#matrix[@]} -eq 0 ]] && [[ "${{ github.ref }}" == "refs/heads/master" || "${{ github.ref }}" == "refs/heads/main" ]]; then
+            matrix+=('{"service":"config-server","path":"microservices/config-server","version":"1.0.0","port":"8888"}')
+            matrix+=('{"service":"eureka-server","path":"microservices/eureka-server","version":"1.0.1","port":"8761"}')
+            matrix+=('{"service":"api-gateway","path":"microservices/api-gateway","version":"1.0.0","port":"8080"}')
+            matrix+=('{"service":"account-service","path":"microservices/account-service","version":"1.0.2","port":"8081"}')
+          fi
+          
+          # Convert array to JSON
+          if [[ ${#matrix[@]} -gt 0 ]]; then
+            printf -v joined '%s,' "${matrix[@]}"
+            matrix_json="[${joined%,}]"
+          else
+            matrix_json="[]"
+          fi
+          
+          echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
+          echo "Build matrix: $matrix_json"
+
+  # Job 2: Build Shared Libraries First
+  build-shared:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.common-lib == 'true' || needs.detect-changes.outputs.eureka-integration == 'true' || github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build Parent POM
+        run: mvn clean install -N -DskipTests
+
+      - name: Build Common Library
+        if: needs.detect-changes.outputs.common-lib == 'true' || github.ref == 'refs/heads/master'
+        run: |
+          cd shared/common-lib
+          mvn clean install -DskipTests
+
+      - name: Build Eureka Integration
+        if: needs.detect-changes.outputs.eureka-integration == 'true' || github.ref == 'refs/heads/master'
+        run: |
+          cd shared/eureka-integration
+          mvn clean install -DskipTests
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+  # Job 3: Build and Test Microservices
+  build-and-test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-shared]
+    if: needs.detect-changes.outputs.matrix != '[]'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Restore Maven cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and Test ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.path }}
+          mvn clean compile test
+        env:
+          SERVICE_NAME: ${{ matrix.service }}
+
+      - name: Package ${{ matrix.service }}
+        run: |
+          cd ${{ matrix.path }}
+          mvn package -DskipTests
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.service }}
+          path: ${{ matrix.path }}/target/surefire-reports/
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.service }}-jar
+          path: ${{ matrix.path }}/target/*.jar
+
+  # Job 4: Security Scan
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-shared]
+    if: needs.detect-changes.outputs.matrix != '[]'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Restore Maven cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Run OWASP Dependency Check
+        run: |
+          cd ${{ matrix.path }}
+          mvn org.owasp:dependency-check-maven:check
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-${{ matrix.service }}
+          path: ${{ matrix.path }}/target/dependency-check-report.html
+
+  # Job 5: Build Docker Images
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-and-test]
+    if: needs.detect-changes.outputs.matrix != '[]' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.service }}-jar
+          path: ${{ matrix.path }}/target/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ matrix.version }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.path }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ matrix.version }}
+
+  # Job 6: Integration Tests
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-docker]
+    if: needs.detect-changes.outputs.matrix != '[]' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: financer_test
+          POSTGRES_USER: financer
+          POSTGRES_PASSWORD: financer123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      mongodb:
+        image: mongo:7-jammy
+        env:
+          MONGO_INITDB_ROOT_USERNAME: financer
+          MONGO_INITDB_ROOT_PASSWORD: financer123
+        options: >-
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongosh localhost:27017/test --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Wait for services
+        run: |
+          sleep 30
+          
+      - name: Run Integration Tests
+        run: |
+          cd tests
+          # Adicionar comando para executar testes de integração
+          echo "Integration tests would run here"
+
+  # Job 7: Deploy to Development
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/develop' && success()
+    environment: development
+    
+    steps:
+      - name: Deploy to Development
+        run: |
+          echo "Deploy to development environment"
+          # Adicionar scripts de deploy para dev
+
+  # Job 8: Deploy to Production
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/master' && success()
+    environment: production
+    
+    steps:
+      - name: Deploy to Production
+        run: |
+          echo "Deploy to production environment"
+          # Adicionar scripts de deploy para prod
+
+  # Job 9: Notification
+  notify:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan, build-docker]
+    if: always()
+    
+    steps:
+      - name: Notify Success
+        if: needs.build-and-test.result == 'success' && needs.security-scan.result == 'success'
+        run: |
+          echo "✅ Pipeline completed successfully!"
+          
+      - name: Notify Failure
+        if: needs.build-and-test.result == 'failure' || needs.security-scan.result == 'failure'
+        run: |
+          echo "❌ Pipeline failed!"
