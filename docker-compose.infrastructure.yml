@@ -48,6 +48,10 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
     networks:
       - financer-network
     healthcheck:
@@ -73,6 +77,9 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      # Auto-create topics and handle cluster ID conflicts
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
     volumes:
       - kafka_data:/var/lib/kafka/data
     networks:
@@ -123,3 +130,5 @@ volumes:
   postgres_data:
   mongodb_data:
   kafka_data:
+  zookeeper_data:
+  zookeeper_logs:

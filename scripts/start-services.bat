@@ -2,11 +2,14 @@
 echo Starting Financer Microservices...
 echo.
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 echo Checking if infrastructure is running...
 docker-compose ps postgres mongodb kafka | findstr "Up" >nul
 if %errorlevel% neq 0 (
     echo ❌ Infrastructure services are not running!
-    echo Please start them first with: start-infrastructure.bat
+    echo Please start them first with: scripts\start-infrastructure.bat
     pause
     exit /b 1
 )

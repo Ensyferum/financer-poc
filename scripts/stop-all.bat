@@ -2,6 +2,9 @@
 echo Stopping All Financer Services...
 echo.
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 echo [1/2] Stopping Microservices...
 docker-compose -f docker-compose.services.yml down
 

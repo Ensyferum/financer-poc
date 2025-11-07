@@ -1,6 +1,9 @@
 @echo off
 echo Building Financer Microservices...
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 echo.
 echo [0/5] Installing Parent POM...
 call mvn clean install -N

@@ -2,6 +2,9 @@
 echo Starting Infrastructure Services (PostgreSQL, MongoDB, Kafka)...
 echo.
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 docker-compose up -d postgres mongodb zookeeper kafka schema-registry kafka-ui
 
 echo.

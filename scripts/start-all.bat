@@ -2,12 +2,15 @@
 echo Starting Complete Financer System...
 echo.
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 echo [1/2] Starting Infrastructure...
-call start-infrastructure.bat
+call scripts\start-infrastructure.bat
 
 echo.
 echo [2/2] Building and Starting Services...
-call build-services.bat
+call scripts\build-services.bat
 
 if %errorlevel% neq 0 (
     echo ❌ Failed to build services
@@ -15,7 +18,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-call start-services.bat
+call scripts\start-services.bat
 
 echo.
 echo 🚀 Complete Financer System Started!

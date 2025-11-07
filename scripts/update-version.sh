@@ -4,6 +4,9 @@
 # Usage: ./update-version.sh [component] [new-version] [version-type]
 # Example: ./update-version.sh account-service 1.0.1 patch
 
+# Change to project root directory (parent of scripts)
+cd "$(dirname "$0")/.."
+
 COMPONENT=$1
 NEW_VERSION=$2
 VERSION_TYPE=$3
