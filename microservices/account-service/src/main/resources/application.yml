@@ -5,9 +5,25 @@ spring:
 server:
   port: 8081
 
+# Configuração customizada da biblioteca Eureka (opcional)
+financer:
+  eureka:
+    lease-renewal-interval: 45  # Customização - mais rápido que o padrão
+
 logging:
   level:
     com.financer: INFO
     org.springframework.cloud.config: INFO
   pattern:
     console: "[%d{yyyy-MM-dd HH:mm:ss}] [ACCOUNT-SERVICE] [%level] [%logger{36}] - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+    import: "configserver:http://financer-config-server:8888"
+  cloud:
+    config:
+      username: config-admin
+      password: config123

@@ -1,0 +1,42 @@
+# Financer Eureka Integration - Default Configuration
+
+# Configurações padrão do Eureka
+financer:
+  eureka:
+    # URLs do Eureka Server
+    local-url: http://localhost:8761/eureka/
+    docker-url: http://financer-eureka-server:8761/eureka/
+    
+    # Configurações de lease
+    lease-renewal-interval: 30
+    lease-expiration-duration: 90
+    
+    # Configurações de cliente
+    prefer-ip-address: true
+    register-with-eureka: true
+    fetch-registry: true
+    
+    # Timeouts
+    connection-timeout: 5
+    read-timeout: 8
+    
+    # Health check
+    enable-health-check: true
+    
+    # Configurações específicas para Docker
+    docker:
+      prefer-ip-address: false
+      # hostname será automaticamente definido como spring.application.name
+
+# Configurações adicionais do Eureka (serão sobrescritas pela biblioteca)
+eureka:
+  client:
+    # Estas configurações são gerenciadas automaticamente pela biblioteca
+    enabled: true
+    register-with-eureka: ${financer.eureka.register-with-eureka:true}
+    fetch-registry: ${financer.eureka.fetch-registry:true}
+    
+  instance:
+    # Estas configurações são gerenciadas automaticamente pela biblioteca
+    lease-renewal-interval-in-seconds: ${financer.eureka.lease-renewal-interval:30}
+    lease-expiration-duration-in-seconds: ${financer.eureka.lease-expiration-duration:90}
