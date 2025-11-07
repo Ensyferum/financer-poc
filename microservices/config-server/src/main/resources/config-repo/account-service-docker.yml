@@ -1,0 +1,28 @@
+# Docker profile configuration for Account Service
+# Override health configuration to fix mongo error
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      validate-group-membership: false
+      group:
+        infrastructure:
+          include: diskSpace,ping
+          show-details: always
+
+# Fix the database URL to match the docker setup  
+spring:
+  datasource:
+    url: jdbc:postgresql://financer-postgres:5432/financer
+    username: financer
+    password: financer123
+
+# Eureka configuration for docker
+eureka:
+  client:
+    service-url:
+      defaultZone: http://financer-eureka-server:8761/eureka/
+  instance:
+    hostname: financer-account-service
+    prefer-ip-address: false

@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/config-repo/
+  security:
+    user:
+      name: config-admin
+      password: config123
+
+server:
+  port: 8888
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.config: INFO
+    com.financer: INFO
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] [CONFIG-SERVER] [%level] [%logger{36}] - %msg%n"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+    fetch-registry: false
+    register-with-eureka: true
+  instance:
+    hostname: config-server
+    prefer-ip-address: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker

@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: eureka-server
+  config:
+    import: "configserver:http://financer-config-server:8888"
+  cloud:
+    config:
+      username: config-admin
+      password: config123
+
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: financer-eureka-server
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      validate-group-membership: false
+
+logging:
+  level:
+    root: INFO
+    com.netflix: WARN
+    org.springframework.cloud: DEBUG
+  file:
+    path: /app/logs
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [EUREKA-SERVER] %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+    import: "configserver:http://financer-config-server:8888"

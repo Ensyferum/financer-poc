@@ -1,0 +1,149 @@
+# Configuração padrão para todos os microserviços
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: America/Sao_Paulo
+
+# Kafka Configuration
+kafka:
+  bootstrap-servers: financer-kafka:29092
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+    retries: 3
+  consumer:
+    group-id: financer-consumer-group
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    auto-offset-reset: earliest
+    properties:
+      spring.json.trusted.packages: "com.financer.*"
+
+# MongoDB Configuration
+mongodb:
+  host: financer-mongodb
+  port: 27017
+  database: financer
+  username: financer
+  password: financer123
+
+# Enhanced Actuator Configuration for Infrastructure Monitoring
+management:
+  server:
+    port: ${server.port}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers,threaddump,heapdump,prometheus,eureka
+      base-path: /actuator
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET,POST
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      validate-group-membership: false
+      group:
+        infrastructure:
+          include: diskSpace,ping,dockerInfrastructure
+          show-details: always
+        external:
+          include: eureka
+          show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  health:
+    diskspace:
+      enabled: true
+      threshold: 100MB
+    ping:
+      enabled: true
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      sla:
+        http.server.requests: 50ms,100ms,200ms,500ms
+
+# Infrastructure Monitoring Configuration
+infrastructure:
+  health-checks:
+    postgres:
+      url: "jdbc:postgresql://financer-postgres:5432/financer"
+      username: "financer"
+      password: "financer123"
+    mongodb:
+      url: "mongodb://financer:financer123@financer-mongodb:27017/financer?authSource=admin"
+    kafka:
+      bootstrap-servers: "financer-kafka:29092"
+    schema-registry:
+      url: "http://financer-schema-registry:8081"
+    
+# Docker Containers Status
+docker:
+  containers:
+    postgres:
+      name: "financer-postgres"
+      description: "PostgreSQL Database"
+    mongodb:
+      name: "financer-mongodb" 
+      description: "MongoDB Database"
+    zookeeper:
+      name: "financer-zookeeper"
+      description: "Zookeeper for Kafka"
+    kafka:
+      name: "financer-kafka"
+      description: "Apache Kafka Message Broker"
+    schema-registry:
+      name: "financer-schema-registry"
+      description: "Confluent Schema Registry"
+    kafka-ui:
+      name: "financer-kafka-ui"
+      description: "Kafka UI Management"
+
+# Logging Configuration
+logging:
+  level:
+    com.financer: INFO
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] [%X{correlationId:-}] [%level] [%logger{36}] - %msg%n"
+    file: "[%d{yyyy-MM-dd HH:mm:ss}] [%X{correlationId:-}] [%X{userId:-}] [%X{domain:-}] [%X{function:-}] [%X{step:-}] [%level] [%logger{36}] - %msg%n"
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha

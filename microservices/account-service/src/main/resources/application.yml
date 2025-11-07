@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: account-service
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.financer: INFO
+    org.springframework.cloud.config: INFO
+  pattern:
+    console: "[%d{yyyy-MM-dd HH:mm:ss}] [ACCOUNT-SERVICE] [%level] [%logger{36}] - %msg%n"

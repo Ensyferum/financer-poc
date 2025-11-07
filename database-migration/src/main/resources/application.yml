@@ -1,0 +1,58 @@
+# Application configuration for Database Migration Tool
+spring:
+  application:
+    name: database-migration
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  cloud:
+    config:
+      uri: http://localhost:8888
+      username: config-admin
+      password: config123
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+
+# Database Configuration
+migration:
+  postgres:
+    url: jdbc:postgresql://localhost:5432/financer_accounts
+    username: financer_user
+    password: financer123
+    schema: public
+  
+  mongodb:
+    url: mongodb://localhost:27017
+    database: financer
+  
+  # Migration Control
+  control:
+    enabled: true
+    table-name: migration_execution_history
+  
+  # Execution Settings
+  execution:
+    generate-report: true
+    report-format: JSON
+    max-retries: 3
+    timeout-minutes: 30
+
+# Logging Configuration
+logging:
+  level:
+    com.financer.migration: DEBUG
+    org.flywaydb: INFO
+    org.mongodb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# Application Information
+info:
+  app:
+    name: Database Migration Tool
+    description: Versioned database migration system for Financer
+    version: 1.0.0

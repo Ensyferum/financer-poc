@@ -1,0 +1,43 @@
+# Configuração para o serviço de orquestração
+
+server:
+  port: 8083
+
+spring:
+  application:
+    name: orchestration-service
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: financer
+      username: orchestration_service
+      password: orchestration123
+
+# Configurações específicas do domínio
+financer:
+  orchestration:
+    saga:
+      timeout: 300000 # 5 minutes
+      retry-attempts: 3
+      compensation-enabled: true
+    functional:
+      parallel-execution: true
+      max-concurrent-sagas: 10
+
+# Kafka específico para orquestração
+kafka:
+  topics:
+    saga-started: saga.started
+    saga-completed: saga.completed
+    saga-failed: saga.failed
+    compensation-required: compensation.required
+
+# Eureka Client
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30

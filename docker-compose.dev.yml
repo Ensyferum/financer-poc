@@ -1,0 +1,32 @@
+# Docker Compose override para desenvolvimento
+# Este arquivo é automaticamente usado quando você executa docker-compose up
+
+services:
+  # Config Server - configurações de desenvolvimento
+  config-server:
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,dev
+      - JAVA_OPTS=-Xmx256m -Xms128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    ports:
+      - "8888:8888"
+      - "5005:5005"  # Debug port
+    volumes:
+      - ./microservices/config-server/src/main/resources/config-repo:/app/config-repo:ro
+
+  # Eureka Server - configurações de desenvolvimento
+  eureka-server:
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,dev
+      - JAVA_OPTS=-Xmx256m -Xms128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006
+    ports:
+      - "8761:8761"
+      - "5006:5006"  # Debug port
+
+  # API Gateway - configurações de desenvolvimento
+  api-gateway:
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,dev
+      - JAVA_OPTS=-Xmx256m -Xms128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5007
+    ports:
+      - "8080:8080"
+      - "5007:5007"  # Debug port

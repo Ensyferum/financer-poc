@@ -1,0 +1,47 @@
+# Configuração específica para o serviço de transações
+
+server:
+  port: 8082
+
+spring:
+  application:
+    name: transaction-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financer
+    username: transaction_service
+    password: transaction123
+    schema: transaction_schema
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: transaction_schema
+
+# Configurações específicas do domínio
+financer:
+  transaction:
+    validation:
+      max-amount: 1000000.00
+      require-description: true
+    processing:
+      async-enabled: true
+      batch-size: 100
+    audit:
+      enabled: true
+
+# Kafka específico para transações
+kafka:
+  topics:
+    transaction-created: transaction.created
+    transaction-updated: transaction.updated
+    transaction-deleted: transaction.deleted
+
+# Eureka Client
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30

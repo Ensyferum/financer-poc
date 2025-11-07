@@ -1,0 +1,82 @@
+# Docker profile configuration for Account Service
+spring:
+  application:
+    name: account-service
+  config:
+    import: "optional:configserver:http://financer-config-server:8888"
+  cloud:
+    config:
+      uri: http://financer-config-server:8888
+      username: config-admin
+      password: config123
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+  
+  # Database configuration
+  datasource:
+    url: jdbc:postgresql://financer-postgres:5432/financer_accounts
+    username: financer_user
+    password: financer123
+    driver-class-name: org.postgresql.Driver
+    
+  # JPA/Hibernate configuration  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+
+# Server configuration
+server:
+  port: 8081
+
+# Eureka Client Configuration  
+eureka:
+  client:
+    service-url:
+      defaultZone: http://financer-eureka-server:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    hostname: financer-account-service
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      validate-group-membership: false
+      group:
+        infrastructure:
+          include: diskSpace,ping
+          show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.financer.account: INFO
+    org.springframework.cloud.config: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+  file:
+    path: /app/logs
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [ACCOUNT-SERVICE] %logger{36} - %msg%n"

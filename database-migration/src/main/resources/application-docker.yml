@@ -1,0 +1,29 @@
+# Docker profile configuration for Database Migration
+spring:
+  application:
+    name: database-migration
+  config:
+    import: "optional:configserver:http://financer-config-server:8888"
+  cloud:
+    config:
+      uri: http://financer-config-server:8888
+      username: config-admin
+      password: config123
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+
+# Database Configuration for Docker
+migration:
+  postgres:
+    url: jdbc:postgresql://financer-postgres:5432/financer_accounts
+    username: financer_user
+    password: financer123
+    schema: public
+  
+  mongodb:
+    url: mongodb://financer-mongodb:27017
+    database: financer

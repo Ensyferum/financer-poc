@@ -1,0 +1,74 @@
+# Configuração específica do Eureka Server para ambiente Docker
+
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: eureka-server
+    prefer-ip-address: false
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 10000
+    renewal-threshold-update-interval-ms: 5000
+    expected-client-renewal-interval-seconds: 10
+    renewal-percent-threshold: 0.49
+    response-cache-auto-expiration-in-seconds: 60
+    response-cache-update-interval-ms: 10000
+  dashboard:
+    enabled: true
+    path: /
+
+# Management Configuration específica para Docker
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,eureka,shutdown,infrastructure
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      validate-group-membership: false
+      group:
+        infrastructure:
+          include: diskSpace,ping,dockerInfrastructure
+          show-details: always
+        external:
+          include: eureka
+          show-details: always
+    metrics:
+      enabled: true
+    eureka:
+      enabled: true
+    shutdown:
+      enabled: true
+  health:
+    diskspace:
+      enabled: true
+      threshold: 100MB
+    ping:
+      enabled: true
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# Logging específico para Docker
+logging:
+  level:
+    root: INFO
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+    org.springframework.cloud.netflix.eureka: DEBUG
+    com.financer: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [EUREKA-SERVER] %logger{36} - %msg%n"

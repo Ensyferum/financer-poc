@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: "configserver:http://financer-config-server:8888"
+  cloud:
+    config:
+      username: config-admin
+      password: config123
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.loadbalancer: DEBUG
+    com.financer: INFO
+  file:
+    path: /app/logs
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [API-GATEWAY] %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+    import: "configserver:http://financer-config-server:8888"

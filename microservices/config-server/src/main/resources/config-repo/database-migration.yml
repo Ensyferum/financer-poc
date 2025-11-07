@@ -1,0 +1,78 @@
+# Database Migration Configuration
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financer_accounts
+    username: financer_user
+    password: financer123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 300000
+      max-lifetime: 1800000
+
+# Migration Configuration
+migration:
+  postgres:
+    url: jdbc:postgresql://localhost:5432/financer_accounts
+    username: financer_user
+    password: financer123
+    schema: public
+  
+  mongodb:
+    url: mongodb://localhost:27017
+    database: financer
+  
+  # Migration Control
+  control:
+    enabled: true
+    table-name: migration_execution_history
+  
+  # Execution Settings
+  execution:
+    generate-report: true
+    report-format: JSON
+    max-retries: 3
+    timeout-minutes: 30
+
+# Flyway Configuration
+flyway:
+  locations: classpath:db/migration/postgresql
+  baseline-on-migrate: true
+  baseline-version: 0
+  validate-on-migrate: true
+  clean-disabled: false
+
+# Logging Configuration
+logging:
+  level:
+    com.financer.migration: DEBUG
+    org.flywaydb: INFO
+    org.mongodb: INFO
+    org.springframework.cloud.config: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+
+---
+# Docker environment
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    url: jdbc:postgresql://financer-postgres:5432/financer_accounts
+    username: financer_user
+    password: financer123
+
+migration:
+  postgres:
+    url: jdbc:postgresql://financer-postgres:5432/financer_accounts
+    username: financer_user
+    password: financer123
+    schema: public
+  
+  mongodb:
+    url: mongodb://financer-mongodb:27017
+    database: financer
