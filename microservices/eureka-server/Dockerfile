@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:25-jdk-alpine
 
 LABEL maintainer="financer-team"
 LABEL description="Eureka Server for Financer microservices"
