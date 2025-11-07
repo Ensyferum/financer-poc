@@ -6,6 +6,9 @@ REM Lista, limpa e gerencia imagens Docker do projeto
 
 setlocal enabledelayedexpansion
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 set ACTION=%1
 if "%ACTION%"=="" set ACTION=list
 

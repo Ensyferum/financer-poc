@@ -7,6 +7,9 @@ REM Example: update-version.bat account-service 1.0.1 patch --build --tag --push
 
 setlocal enabledelayedexpansion
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 set COMPONENT=%1
 set NEW_VERSION=%2
 set VERSION_TYPE=%3

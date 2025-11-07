@@ -5,6 +5,9 @@ echo ===========================================
 
 setlocal enabledelayedexpansion
 
+REM Change to project root directory (parent of scripts)
+cd /d "%~dp0\.."
+
 REM Read versions from VERSION.properties
 echo 📖 Carregando versões do projeto...
 for /f "tokens=1,2 delims==" %%i in ('findstr "_VERSION=" VERSION.properties') do (

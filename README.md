@@ -29,19 +29,32 @@ Este projeto utiliza uma arquitetura de microserviços com Docker Compose modula
 
 ```
 financer/
-├── microservices/           # Microserviços
-│   ├── config-server/       # Servidor de configuração
-│   ├── eureka-server/       # Service discovery
-│   ├── api-gateway/         # Gateway da API
-│   ├── account-service/     # Gestão de contas
-│   ├── transaction-service/ # Gestão de transações
-│   └── orchestration-service/ # Orquestração
-├── shared/                  # Bibliotecas compartilhadas
-│   └── common-lib/          # Utilitários comuns
-├── infrastructure/          # Configurações de infraestrutura
-├── frontend/               # Aplicação Angular
-├── tests/                  # Testes funcionais com Robot Framework
-└── docs/                   # Documentação
+├── 📁 microservices/           # Microserviços
+│   ├── config-server/          # ✅ Servidor de configuração
+│   ├── eureka-server/          # ✅ Service discovery  
+│   ├── api-gateway/            # ✅ Gateway da API
+│   ├── account-service/        # ✅ Gestão de contas
+│   ├── transaction-service/    # 🚧 Gestão de transações
+│   └── orchestration-service/  # 🚧 Orquestração
+├── 📁 shared/                  # Bibliotecas compartilhadas
+│   └── common-lib/             # ✅ Utilitários comuns
+├── 📁 infrastructure/          # ✅ Configurações de infraestrutura
+├── 📁 database-migration-py/   # ✅ Sistema de migração Python
+├── 📁 frontend/               # 🚧 Aplicação Angular
+├── 📁 tests/                  # 🚧 Testes funcionais
+├── 📁 scripts/                # ✅ Scripts de automação
+│   ├── build-and-deploy.bat   # Build e deploy versionado
+│   ├── update-version.bat     # Versionamento Docker
+│   └── docker-images.bat      # Gestão de imagens
+├── 📁 docs/                   # ✅ Documentação completa
+│   ├── prompt.md              # Prompt para LLMs
+│   ├── tasks.md               # Gestão de tarefas
+│   ├── DOCKER-VERSIONING.md   # Guia de versionamento
+│   └── ROLLBACK-QUICK-GUIDE.md # Guia de rollback
+├── 📄 docker-compose.yml      # ✅ Orquestração principal
+├── 📄 .env                    # ✅ Variáveis de ambiente
+├── 📄 VERSION.properties      # ✅ Controle de versões
+└── 📄 README.md               # Este arquivo
 ```
 
 ## 🚀 Como Executar
@@ -141,7 +154,7 @@ docker-compose down ; docker-compose up -d
 docker-compose ps
 
 # Build e start completo
-build-and-deploy.bat
+scripts\build-and-deploy.bat
 ```
 
 #### Opção 2: Deploy Modular
@@ -158,7 +171,7 @@ docker-compose -f docker-compose.services.yml up -d
 
 **Build específico:**
 ```cmd
-build-services.bat
+scripts\build-services.bat
 ```
 
 ### 📊 Comandos de Monitoramento
@@ -254,15 +267,47 @@ logger.info(ExecutionStep.START, "Iniciando criação de conta");
 - `feature/*`: Novas funcionalidades
 - `hotfix/*`: Correções urgentes
 
-## 🎯 Próximas Etapas
+## 🎯 Status do Projeto
 
-1. ✅ Estrutura base do projeto
-2. 🔄 Infraestrutura local (PostgreSQL, MongoDB, Kafka)
-3. ⏳ Servidor de configuração
-4. ⏳ API Gateway e Service Discovery
-5. ⏳ Microserviço de contas
-6. ⏳ Sistema de logs padronizado
+### ✅ Implementado
+1. **Estrutura modular Docker Compose**
+2. **Infraestrutura completa** (PostgreSQL, MongoDB, Kafka, etc.)
+3. **Microserviços core** (Config Server, Eureka, API Gateway, Account Service)
+4. **Sistema de versionamento Docker** avançado
+5. **Git rollback system** com v1.0.0-stable
+6. **Scripts de automação** para build e deploy
+7. **Sistema de logs padronizado**
+
+### 🚧 Em Desenvolvimento
+- **Transaction Service**: Gestão de transações financeiras
+- **Orchestration Service**: Lógica de workflows
+- **Frontend Angular**: Interface do usuário
+- **Robot Framework**: Testes automatizados
+
+### 📋 Próximos Passos
+1. **Biblioteca de integração Eureka**
+2. **Pipelines CI/CD (GitHub Actions)**
+3. **Monitoramento (Grafana/Dynatrace)**
+4. **Métricas avançadas e observabilidade**
+
+## 📚 Documentação
+
+| Arquivo | Descrição |
+|---------|-----------|
+| 📄 [docs/prompt.md](docs/prompt.md) | Prompt otimizado para LLMs |
+| 📄 [docs/tasks.md](docs/tasks.md) | Gestão completa de tarefas |
+| 📄 [docs/DOCKER-VERSIONING.md](docs/DOCKER-VERSIONING.md) | Sistema de versionamento |
+| 📄 [docs/ROLLBACK-QUICK-GUIDE.md](docs/ROLLBACK-QUICK-GUIDE.md) | Guia de rollback rápido |
+
+## 🛠️ Scripts Disponíveis
+
+| Script | Descrição |
+|--------|-----------|
+| 🔧 [scripts/build-and-deploy.bat](scripts/build-and-deploy.bat) | Build e deploy versionado |
+| 🔧 [scripts/update-version.bat](scripts/update-version.bat) | Versionamento de serviços |
+| 🔧 [scripts/docker-images.bat](scripts/docker-images.bat) | Gestão de imagens Docker |
+| 🔧 [scripts/start-all.bat](scripts/start-all.bat) | Iniciar toda a stack |
 
 ---
 
-Para mais informações, consulte a documentação em `docs/`.
+📖 **Para informações completas**, consulte a documentação em [`docs/`](docs/).
