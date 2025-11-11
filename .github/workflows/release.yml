@@ -79,7 +79,7 @@ jobs:
           echo "Commit: ${{ github.sha }}" >> release-artifacts/VERSION.txt
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-artifacts-${{ steps.version.outputs.version }}
           path: release-artifacts/
