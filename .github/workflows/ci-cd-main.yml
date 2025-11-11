@@ -169,14 +169,14 @@ jobs:
           mvn package -DskipTests
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: test-results-${{ matrix.service }}
           path: ${{ matrix.path }}/target/surefire-reports/
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.service }}-jar
           path: ${{ matrix.path }}/target/*.jar
@@ -215,7 +215,7 @@ jobs:
           mvn org.owasp:dependency-check-maven:check
 
       - name: Upload security scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: security-scan-${{ matrix.service }}

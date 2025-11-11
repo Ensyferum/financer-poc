@@ -223,7 +223,7 @@ jobs:
           cat health-report.md
 
       - name: Upload Health Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: health-report-$(date +%Y%m%d-%H%M%S)
           path: health-report.md
